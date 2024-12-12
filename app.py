@@ -26,11 +26,13 @@ CORS(
     app,
     resources={
         r"/*": {
-            "origins": "*",
+            "origins": ["http://localhost:3000"],
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": ["Content-Type", "Authorization"],
+            "expose_headers": ["Content-Type", "Authorization"],
         }
     },
+    supports_credentials=True,
 )
 
 # MongoDB Configuration
@@ -434,6 +436,7 @@ def generate_post():
 
         # Save post to user's posts in MongoDB
         post = {
+            "_id": ObjectId(),
             "platform": platform,
             "topic": topic,
             "content": best_content,
@@ -474,12 +477,11 @@ def get_user_posts():
         posts = user.get("posts", [])
         for post in posts:
             post["_id"] = str(post["_id"])
-            if "engagement_score" not in post:
-                post["engagement_score"] = 0
+
         return jsonify({"posts": posts}), 200
 
     except Exception as e:
-        print(f"Error in get_user_posts: {str(e)}")
+        print(f"Error in get_user_posts: " + e)
         return jsonify({"error": str(e)}), 500
 
 
@@ -512,6 +514,38 @@ def get_user_analytics():
         )
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/user/posts/<post_id>", methods=["DELETE"])
+@jwt_required()
+def delete_post(post_id):
+    try:
+        # Validate post_id
+        if not ObjectId.is_valid(post_id):
+            return jsonify({"error": "Invalid post ID format"}), 400
+
+        # Get current user
+        current_user_id = get_jwt_identity()
+        print(current_user_id)
+        # Find post and verify ownership
+        cUser = mongo.db.users.find_one({"_id": ObjectId(current_user_id)})
+
+        if not cUser:
+            return jsonify({"error": "User not found or unauthorized"}), 404
+
+        result = mongo.db.users.update_one(
+            {"_id": ObjectId(current_user_id)},
+            {"$pull": {"posts": {"_id": ObjectId(post_id)}}},
+        )
+
+        if result:
+            return jsonify({"message": "Post deleted successfully"}), 200
+        else:
+            return jsonify({"error": "Failed to delete post"}), 500
+
+    except Exception as e:
+        print(f"Delete error: {str(e)}")  # Server logging
+        return jsonify({"error": "Server error occurred"}), 500
 
 
 if __name__ == "__main__":

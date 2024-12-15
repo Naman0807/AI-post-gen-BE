@@ -1,60 +1,66 @@
-# app.py
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import requests
 from datetime import datetime, timedelta
 import base64
 import random
-from flask_pymongo import PyMongo
 from flask_jwt_extended import (
     JWTManager,
     create_access_token,
     jwt_required,
     get_jwt_identity,
 )
-import os
 from werkzeug.security import generate_password_hash, check_password_hash
 from bson.objectid import ObjectId
+from dotenv import load_dotenv
+import os
+import requests
+from pymongo.mongo_client import MongoClient
+from pymongo.server_api import ServerApi
 
+
+load_dotenv()
+mongo_uri = os.getenv("ATLAS_URI")
+
+# Initialize Flask app
 app = Flask(__name__)
 CORS(
     app,
     resources={
         r"/*": {
-            "origins": [os.getenv("FE_URL")],
-            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            "allow_headers": [
-                "Content-Type",
-                "Authorization",
-                "ngrok-skip-browser-warning",
+            "origins": [
+                os.getenv("FE_URL"),
             ],
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"],
             "expose_headers": ["Content-Type", "Authorization"],
         }
     },
     supports_credentials=True,
 )
 
-# MongoDB Configuration
-app.config["MONGO_URI"] = "mongodb://127.0.0.1:27017/postcraft"
-app.config["JWT_SECRET_KEY"] = "1we3W4rt"
-mongo = PyMongo(app)
+# JWT Configuration
+app.config["JWT_SECRET_KEY"] = "1we3W4rt"  # Change this to a secure key in production
+
+# Initialize JWT
 jwt = JWTManager(app)
 
-# Store API keys and configurations
-config = {
+try:
+    client = MongoClient(mongo_uri, server_api=ServerApi("1"))
+    db = client.postcraft
+    client.admin.command("ping")
+    print("\n\n\n\t\tMongoDB Atlas connection successful!\n\n\n")
+except Exception as e:
+    print("MongoDB Atlas connection error:", str(e))
+    raise e
+
+
+app_config = {
     "huggingface_key": None,
     "gemini_key": None,
     "hf_headers": None,
     "hf_image_url": "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-3.5-large-turbo",
     "gemini_model": None,
 }
-
-# Add this after your app initialization
-try:
-    mongo.db.command("ping")
-    print("MongoDB connected successfully!")
-except Exception as e:
-    print("MongoDB connection error:", str(e))
 
 
 def get_platform_specific_prompt(platform, topic, length="medium"):
@@ -151,9 +157,7 @@ Requirements:
 def register():
     try:
         data = request.json
-        print(
-            "Received registration data:", {**data, "password": "*****"}
-        )  # Log data safely
+        print("Received registration data:", {**data, "password": "*****"})
 
         # Validate required fields
         required_fields = ["name", "email", "password"]
@@ -166,7 +170,7 @@ def register():
             return jsonify({"error": "Invalid email format"}), 400
 
         # Check if email already exists
-        existing_user = mongo.db.users.find_one({"email": data["email"]})
+        existing_user = db.users.find_one({"email": data["email"]})
         if existing_user:
             return jsonify({"error": "Email already registered"}), 400
 
@@ -185,7 +189,7 @@ def register():
         }
 
         # Insert user into database
-        result = mongo.db.users.insert_one(new_user)
+        result = db.users.insert_one(new_user)
 
         # Generate JWT token
         token = create_access_token(identity=str(result.inserted_id))
@@ -205,7 +209,7 @@ def register():
         )
 
     except Exception as e:
-        print("Registration error:", str(e))  # Log the error
+        print("Registration error:", str(e))
         return jsonify({"error": "Registration failed: " + str(e)}), 500
 
 
@@ -215,12 +219,13 @@ def login():
         data = request.json
 
         if not data.get("email") or not data.get("password"):
-            return jsonify({"error": "Email and password are require    d"}), 400
+            return jsonify({"error": "Email and password are required"}), 400
 
-        user = mongo.db.users.find_one({"email": data["email"]})
+        user = db.users.find_one({"email": data["email"]})
 
         if not user or not check_password_hash(user["password"], data["password"]):
             return jsonify({"error": "Invalid email or password"}), 401
+
         token = create_access_token(
             identity=str(user["_id"]), expires_delta=timedelta(days=7)
         )
@@ -243,6 +248,7 @@ def login():
         return jsonify({"error": str(e)}), 500
 
 
+# Then modify your initialize_apis function
 @app.route("/initialize", methods=["POST"])
 @jwt_required()
 def initialize_apis():
@@ -255,8 +261,8 @@ def initialize_apis():
             return jsonify({"error": "Both API keys are required"}), 400
 
         # Initialize Hugging Face headers
-        config["hf_headers"] = {"Authorization": f"Bearer {hf_api_key}"}
-        config["hf_image_url"] = (
+        app_config["hf_headers"] = {"Authorization": f"Bearer {hf_api_key}"}
+        app_config["hf_image_url"] = (
             "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-3.5-large-turbo"
         )
 
@@ -264,19 +270,19 @@ def initialize_apis():
         import google.generativeai as genai
 
         genai.configure(api_key=gemini_api_key)
-        config["gemini_model"] = genai.GenerativeModel("gemini-1.5-flash")
+        app_config["gemini_model"] = genai.GenerativeModel("gemini-1.5-flash")
 
         # Test both APIs to ensure they work
         try:
             # Test Gemini
-            response = config["gemini_model"].generate_content("Test message")
+            response = app_config["gemini_model"].generate_content("Test message")
             if not response:
                 raise Exception("Failed to initialize Gemini API")
 
             # Test Hugging Face
             test_response = requests.post(
-                config["hf_image_url"],
-                headers=config["hf_headers"],
+                app_config["hf_image_url"],
+                headers=app_config["hf_headers"],
                 json={"inputs": "test"},
             )
             if test_response.status_code not in [
@@ -287,7 +293,6 @@ def initialize_apis():
 
         except Exception as e:
             return jsonify({"error": f"API test failed: {str(e)}"}), 500
-
         return jsonify({"message": "APIs initialized successfully"}), 200
 
     except Exception as e:
@@ -335,9 +340,9 @@ def humanize_content(text, platform):
 
 
 @app.route("/generate_post", methods=["POST"])
-@jwt_required()  # Requires authentication
+@jwt_required()
 def generate_post():
-    if not config.get("gemini_model") or not config.get("hf_headers"):
+    if not app_config.get("gemini_model") or not app_config.get("hf_headers"):
         return (
             jsonify({"error": "APIs not initialized. Please initialize APIs first"}),
             400,
@@ -371,7 +376,7 @@ def generate_post():
         lowest_ai_score = float("inf")
 
         for _ in range(attempts):
-            response = config["gemini_model"].generate_content(
+            response = app_config["gemini_model"].generate_content(
                 text_prompt, generation_config=generation_config
             )
             content = response.text.strip()
@@ -401,8 +406,8 @@ def generate_post():
             modified_prompt = f"{base_image_prompt} {variation}"
 
             image_response = requests.post(
-                config["hf_image_url"],
-                headers=config["hf_headers"],
+                app_config["hf_image_url"],
+                headers=app_config["hf_headers"],
                 json={
                     "inputs": modified_prompt,
                     "negative_prompt": "duplicate, similar images, same composition",
@@ -431,10 +436,10 @@ def generate_post():
         Return only the numeric score.
         """
 
-        score_response = config["gemini_model"].generate_content(engagement_prompt)
+        score_response = app_config["gemini_model"].generate_content(engagement_prompt)
         engagement_score = int(score_response.text.strip())
 
-        # Save post to user's posts in MongoDB
+        # Save post to database
         post = {
             "_id": ObjectId(),
             "platform": platform,
@@ -443,11 +448,14 @@ def generate_post():
             "images": images,
             "engagement_score": engagement_score,
             "created_at": datetime.utcnow(),
+            "metadata": {
+                "length": post_length,
+                "temperature": temperature,
+                "image_count": len(images),
+            },
         }
 
-        mongo.db.users.update_one(
-            {"_id": ObjectId(user_id)}, {"$push": {"posts": post}}
-        )
+        db.users.update_one({"_id": ObjectId(user_id)}, {"$push": {"posts": post}})
 
         return (
             jsonify(
@@ -468,8 +476,9 @@ def generate_post():
 @jwt_required()
 def get_user_posts():
     try:
+
         user_id = get_jwt_identity()
-        user = mongo.db.users.find_one({"_id": ObjectId(user_id)})
+        user = db.users.find_one({"_id": ObjectId(user_id)})
 
         if not user:
             return jsonify({"error": "User not found"}), 404
@@ -485,68 +494,28 @@ def get_user_posts():
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/user/analytics", methods=["GET"])
-@jwt_required()
-def get_user_analytics():
-    try:
-        user_id = get_jwt_identity()
-        user = mongo.db.users.find_one({"_id": ObjectId(user_id)})
-
-        # Calculate analytics
-        platform_stats = {}
-        total_posts = len(user["posts"])
-
-        for post in user["posts"]:
-            platform = post["platform"]
-            if platform not in platform_stats:
-                platform_stats[platform] = 0
-            platform_stats[platform] += 1
-
-        return (
-            jsonify(
-                {
-                    "total_posts": total_posts,
-                    "platform_distribution": platform_stats,
-                    "recent_posts": user["posts"][-5:],
-                }
-            ),
-            200,
-        )
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
 @app.route("/user/posts/<post_id>", methods=["DELETE"])
 @jwt_required()
 def delete_post(post_id):
     try:
-        # Validate post_id
         if not ObjectId.is_valid(post_id):
             return jsonify({"error": "Invalid post ID format"}), 400
 
-        # Get current user
         current_user_id = get_jwt_identity()
-        print(current_user_id)
-        # Find post and verify ownership
-        cUser = mongo.db.users.find_one({"_id": ObjectId(current_user_id)})
-
-        if not cUser:
-            return jsonify({"error": "User not found or unauthorized"}), 404
-
-        result = mongo.db.users.update_one(
+        result = db.users.update_one(
             {"_id": ObjectId(current_user_id)},
             {"$pull": {"posts": {"_id": ObjectId(post_id)}}},
         )
 
-        if result:
+        if result.modified_count > 0:
             return jsonify({"message": "Post deleted successfully"}), 200
         else:
-            return jsonify({"error": "Failed to delete post"}), 500
+            return jsonify({"error": "Post not found or unauthorized"}), 404
 
     except Exception as e:
-        print(f"Delete error: {str(e)}")  # Server logging
+        print(f"Delete error: {str(e)}")
         return jsonify({"error": "Server error occurred"}), 500
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5001, debug=True)

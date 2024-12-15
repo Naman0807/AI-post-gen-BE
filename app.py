@@ -169,7 +169,9 @@ def register():
         new_user = {
             "name": data["name"],
             "email": data["email"],
-            "password": generate_password_hash(data["password"]),
+            "password": generate_password_hash(
+                data["password"], method="pbkdf2:sha256"
+            ),
             "posts": [],
             "hf_api_key": None,
             "gemini_api_key": None,
@@ -208,13 +210,12 @@ def login():
         data = request.json
 
         if not data.get("email") or not data.get("password"):
-            return jsonify({"error": "Email and password are required"}), 400
+            return jsonify({"error": "Email and password are require    d"}), 400
 
         user = mongo.db.users.find_one({"email": data["email"]})
 
         if not user or not check_password_hash(user["password"], data["password"]):
             return jsonify({"error": "Invalid email or password"}), 401
-
         token = create_access_token(
             identity=str(user["_id"]), expires_delta=timedelta(days=7)
         )

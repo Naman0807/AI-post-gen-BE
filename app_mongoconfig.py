@@ -39,7 +39,7 @@ CORS(
 )
 
 # JWT Configuration
-app.config["JWT_SECRET_KEY"] = "1we3W4rt"  # Change this to a secure key in production
+app.config["JWT_SECRET_KEY"] = "1we3W4rt"
 
 # Initialize JWT
 jwt = JWTManager(app)
@@ -68,87 +68,59 @@ def get_platform_specific_prompt(platform, topic, length="medium"):
     length_ranges = {"small": "50-100", "medium": "100-200", "long": "200-300"}
     word_range = length_ranges.get(length, "100-200")
 
-    base_prompt = f"""Write a completely human-like, undetectable, and natural {platform} post about {topic}. 
-    
-Key requirements:
-- Write in a conversational, human tone, use easy to read language
-- Use natural language patterns and varied sentence structures
-- Include personal opinions and experiences
-- Add some imperfections (like starting sentences with 'And' or 'But')
-- Use contractions (e.g., 'I'm' instead of 'I am')
-- Vary paragraph lengths
-- Include rhetorical questions
-- Keep the post between {word_range} words
-- Ensure content is 100% unique and plagiarism-free
-- Add subtle emotional elements
-- Use informal transitions between ideas
-
-Write as if you're a real person sharing their thoughts, not an AI."""
+    base_prompt = f"""Write a natural, human-like, and completely unique {platform} post about {topic} that feels authentic and conversational.
+Here’s what to include:
+Tone & Style: Write casually and conversationally, as if you're talking to a friend. Use natural language, with varied sentence structures and phrasing.
+Personal Touch: Include personal opinions, small anecdotes, or experiences to make it relatable.
+Imperfections: Add small imperfections like starting sentences with "And" or "But," using contractions (e.g., "I'm," "you're"), and breaking long ideas into shorter, punchy sentences.
+Paragraph Flow: Vary the lengths of paragraphs. Some should be just one or two lines, others a little longer.
+Engaging Questions: Sprinkle in rhetorical or reflective questions to draw the reader in and keep it dynamic.
+Emotional Subtlety: Infuse a bit of emotion, whether it’s curiosity, excitement, humor, or even mild frustration, to make it feel alive.
+Transitions: Use informal transitions like "Anyway," "So," or "Honestly" to keep it flowing smoothly, as you’d do in a casual conversation.
+Length: Keep the post between {word_range} words, making every word feel purposeful but not overly polished.
+Ultimately, the goal is to write like a real person sharing honest thoughts—not a polished, overly structured essay."""
 
     prompts = {
         "linkedin": f"""{base_prompt}
 
-Additional LinkedIn-specific guidelines:
-- Write from a first-person perspective
-- Share a personal work experience or insight
-- Include some vulnerability or learning moment
-- Add natural professional enthusiasm
-- Include 4-6 relevant but not overly formal hashtags
-- End with a genuine question to encourage discussion
-- Keep the tone professional but warm
-- Avoid corporate jargon and buzzwords""",
+- Write in First Person: Share authentically from your perspective.
+- Tell a Story: Highlight a work experience or lesson learned.
+- Show Vulnerability: Share challenges or growth moments.
+- Be Enthusiastic: Let your passion shine naturally.
+- Use 4-6 Hashtags: Keep them relevant and simple.
+- End with a Question: Spark engagement with an open-ended question.
+- Be Warm, Not Jargony: Stay professional but conversational.
+""",
         "twitter": f"""{base_prompt}
 
-Additional Twitter-specific guidelines:
-- Use natural Twitter language (like 'tbh', 'imo')
-- Add personality and character
-- Include 3-5 relevant hashtags that feel natural
-- Write as if you're sharing a quick thought
-- Add some personality quirks""",
-        "instagram": f"""{base_prompt}
-
-Additional Instagram-specific guidelines:
-- Write in a casual, friendly tone
-- Include personal feelings and reactions
-- Use a natural mix of emojis (not too many)
-- Add 3-5 relevant hashtags that feel organic
-- Share a moment or feeling
-- Make it feel like a friend's post""",
+- Additional Twitter-specific guidelines:
+- Keep it casual and conversational (use stuff like "tbh," "imo," or emojis for extra vibe).
+- Let your personality shine—make it feel like you’re talking, not a bot.
+- Throw in 3-5 relevant hashtags, but make them flow naturally (no hashtag spam).
+- Keep it short and punchy—like a quick thought or reaction you’d share with a friend.
+- Add quirks! Whether it’s humor, sass, or a unique POV, make it memorable.""",
     }
     return prompts.get(platform)
 
 
 def get_platform_specific_image_prompt(platform, topic):
     prompts = {
-        "linkedin": f"""Create a LinkedIn Marketing Image about {topic}:
-
-Style: Clean, corporate, and modern
-Color Scheme: Blues, grays, with subtle accent colors (e.g., white, metallics)
-Text:
-Headline: Max 6-8 words, short and impactful
-Additional Text: Minimal, only key message
-Font: Bold, modern, high contrast
-Imagery:
-High-quality, professional, and relevant to the topic
-Avoid generic stock photos
-Contrast: Ensure high contrast for easy readability (mobile and desktop)
-Layout: Clear, organized, with a focus on the headline
-Goal: Capture attention, look professional, and drive engagement without clutter.""",
-        "twitter": f"""Create a striking social media image for Twitter about {topic}.
+        "linkedin": f"""Create a image about {topic} for linkedin:
+- Style: Clean, corporate, modern
+- Headline: 6-8 words, short and impactful
+- Additional Text: Minimal, key message only
+- Font: Bold, modern, high contrast
+- Imagery: High-quality, topic-relevant (no generic stock photos)
+- Contrast: High-contrast for readability (mobile & desktop)
+- Layout: Clear, organized, headline-focused
+- Goal: Professional, attention-grabbing, clutter-free, engaging""",
+        "twitter": f"""Create a visually stunning Twitter image about {topic}.
 Requirements:
-- Bold, attention-grabbing design
-- High contrast colors
-- Maximum one short phrase
-- Simple enough to be visible on mobile
-- Memorable visual impact""",
-        "instagram": f"""Create a visually stunning image for Instagram about {topic}.
-Requirements:
-- Beautiful, artistic composition
-- Instagram-optimized square format
-- Vibrant but cohesive colors
-- Minimal text if any
-- Highly visual focus
-- Memorable and shareable design""",
+- Bold, eye-catching design that stops the scroll
+- High-contrast color palette for maximum visibility
+- One impactful, short phrase (5 words max)
+- Clean, minimalist layout optimized for mobile
+- Strong, memorable visuals that leave a lasting impression""",
     }
     return prompts.get(platform)
 
@@ -384,9 +356,6 @@ def generate_post():
 
             # Humanize the content
             humanized_content = humanize_content(content, platform)
-
-            # Here you could add an AI detection check if you have an API for it
-            # For now, we'll use the last generated version
             best_content = humanized_content
 
         if platform == "twitter" and len(best_content) > 280:
@@ -423,17 +392,17 @@ def generate_post():
 
         # After generating the content, calculate engagement score
         engagement_prompt = f"""
-        Analyze this social media post for {platform} and give it an engagement score out of 100.
-        Consider factors like:
-        - Readability
-        - Call to action
-        - Emotional appeal
-        - Hashtag usage
-        - Length appropriateness for the platform
-        
-        Post: {best_content}
-        
-        Return only the numeric score.
+        Analyze this social media post for {platform} and provide an engagement score out of 100. Consider the following factors:
+
+- Readability: Is the post easy to read and understand?
+- Call to Action: Does it effectively encourage user interaction or response?
+- Emotional Appeal: Does the post resonate emotionally with the audience?
+- Hashtag Usage: Are hashtags used effectively and relevantly?
+- Length Appropriateness: Is the post the right length for the platform (concise yet impactful)?
+
+Post: {best_content}
+
+Return only the numeric engagement score.
         """
 
         score_response = app_config["gemini_model"].generate_content(engagement_prompt)

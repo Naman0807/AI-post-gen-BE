@@ -20,7 +20,7 @@ from pymongo.server_api import ServerApi
 
 load_dotenv()
 mongo_uri = os.getenv("ATLAS_URI")
-
+print(os.getenv("FE_URL"))
 # Initialize Flask app
 app = Flask(__name__)
 CORS(
@@ -31,7 +31,11 @@ CORS(
                 os.getenv("FE_URL"),
             ],
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization"],
+            "allow_headers": [
+                "Content-Type",
+                "Authorization",
+                "ngrok-skip-browser-warning",
+            ],
             "expose_headers": ["Content-Type", "Authorization"],
         }
     },

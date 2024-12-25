@@ -65,8 +65,8 @@ app_config = {
 
 def get_platform_specific_prompt(platform, topic, length="medium"):
     # Define word count ranges
-    length_ranges = {"small": "150-300", "medium": "300-400", "long": "400-550"}
-    word_range = length_ranges.get(length, "300-400")
+    length_ranges = {"small": "50-100", "medium": "100-200", "long": "200-300"}
+    word_range = length_ranges.get(length, "100-200")
 
     base_prompt = f"""Write a completely human-like, undetectable, and natural {platform} post about {topic}. 
     
@@ -518,4 +518,4 @@ def delete_post(post_id):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5001, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)

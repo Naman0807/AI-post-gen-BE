@@ -1,13 +1,19 @@
+- checks the Nginx error logs.
 ```bash
-sudo less /var/log/nginx/error.log: checks the Nginx error logs.
+sudo less /var/log/nginx/error.log
 ```
 
+- checks the Nginx access logs.
 ```bash
-sudo less /var/log/nginx/access.log: checks the Nginx access logs.
+sudo less /var/log/nginx/access.log
 ```
+
+- checks the Nginx process logs.
 ```bash
-sudo journalctl -u nginx: checks the Nginx process logs.
+sudo journalctl -u nginx
 ```
+
+- checks your Flask app’s Gunicorn logs.
 ```bash
-sudo journalctl -u app: checks your Flask app’s Gunicorn logs.
+sudo journalctl -u app
 ```

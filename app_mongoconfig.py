@@ -129,6 +129,10 @@ Requirements:
     return prompts.get(platform)
 
 
+@app.route("/")
+def home():
+    return "PostCraft API is live!"
+
 @app.route("/auth/register", methods=["POST"])
 def register():
     try:

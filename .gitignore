@@ -6,5 +6,5 @@
 
 # vercel
 .vercel
-
+venv/
 mongo.txt

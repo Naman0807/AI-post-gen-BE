@@ -8,3 +8,5 @@
 .vercel
 venv/
 mongo.txt
+__pycache__/
+maruv/

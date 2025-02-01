@@ -63,31 +63,16 @@ app_config = {
     "gemini_key": None,
     "hf_headers": None,
     "hf_image_url": "https://api-inference.huggingface.co/models/strangerzonehf/Flux-Midjourney-Mix2-LoRA",
-    "gemini_model": "gemini-1.5-pro",
+    "gemini_model": "gemini-2.0-flash-exp",
 }
 
 
 def get_platform_specific_prompt(platform, topic, length=200):
     word_range = f"{length-20}-{length+20}"
-
-    # Create a list of diverse opening approaches
-    opening_styles = [
-        "Share your perspective on the topic naturally, without any specific opening phrase.",
-        "Consider starting with an interesting fact, observation, or question.",
-        "Begin with a relevant insight or reflection.",
-        "Jump straight into the heart of the matter.",
-        "Open with a bold statement or surprising perspective.",
-        "Start by highlighting a key trend or development.",
-        "Begin with a relevant industry observation.",
-        "Share a brief, relevant experience or observation.",
-    ]
-
     base_prompt = f"""Write a natural, human-like, and completely unique {platform} post about {topic} that feels authentic and conversational.
 
-Opening Style: {random.choice(opening_styles)}
-
 Key Guidelines:
-- Write naturally and avoid cliché openings like 'Okay, so' or 'I've been thinking'
+- Write naturally and avoid cliché openings like 'Okey','Okay, so' or 'I've been thinking'
 - Vary your sentence structure and flow
 - Include personal insights while staying professional
 - Use natural transitions between ideas
@@ -314,7 +299,7 @@ def initialize_apis():
         import google.generativeai as genai
 
         genai.configure(api_key=gemini_api_key)
-        app_config["gemini_model"] = genai.GenerativeModel("gemini-1.5-pro")
+        app_config["gemini_model"] = genai.GenerativeModel("gemini-2.0-flash-exp")
 
         # Test both APIs to ensure they work
         try:

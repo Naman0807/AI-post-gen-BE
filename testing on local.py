@@ -35,6 +35,7 @@ CORS(
                 "Content-Type",
                 "Authorization",
                 "ngrok-skip-browser-warning",
+                "Access-Control-Allow-Origin",
             ],
             "expose_headers": ["Content-Type", "Authorization"],
         }

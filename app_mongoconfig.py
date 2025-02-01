@@ -69,30 +69,43 @@ app_config = {
 
 def get_platform_specific_prompt(platform, topic, length=200):
     word_range = f"{length-20}-{length+20}"
-    base_prompt = f"""Write a natural, human-like, and completely unique {platform} post about {topic} that feels authentic and conversational.
+    base_prompt = f"""Create an authentic {platform} post about {topic} that feels like it was written in a single, natural moment. The post should:
 
-Key Guidelines:
-- Write naturally and avoid cliché openings like 'Okey','Okay, so' or 'I've been thinking'
-- Vary your sentence structure and flow
-- Include personal insights while staying professional
-- Use natural transitions between ideas
-- Keep the tone conversational but purposeful
-- Maintain authenticity without following formulaic patterns
-- Target {word_range} words while keeping it natural
+VOICE & STRUCTURE
+- Capture a distinct point of view and personality
+- Flow like natural speech while maintaining clear purpose
+- Vary rhythm between longer insights and punchy observations
+- Use organic transitions that emerge from the ideas
+- Hit approximately {word_range} words while staying natural
 
-Content Elements:
-- Personal perspective or industry insight
-- Relevant examples or observations
-- Thoughtful reflection on the topic
-- Natural flow between ideas
-- Engaging hooks throughout the content
+CONTENT APPROACH
+- Share a specific perspective or experience that sparked your thinking
+- Weave in concrete examples that illustrate your points
+- Build connections between observations
+- End with an insight that feels earned, not forced
+- Optional: Incorporate relevant data points or expert perspectives if they fit naturally
 
-Language Style:
-- Use varied sentence structures
-- Include natural pauses and transitions
-- Write like you're sharing insights with colleagues
-- Balance professionalism with accessibility
-- Avoid overused phrases and clichés"""
+WRITING STYLE
+- Write with your authentic voice, not a formula
+- Mix up sentence patterns - some complex, some direct
+- Include natural pauses where you'd take a breath
+- Use industry terminology naturally, not to show off
+- Let personality shine through while staying professional
+
+AVOID
+- Generic openings ("Here's the thing about...", "I've been thinking...")
+- Overused transition phrases ("That being said", "On the other hand") 
+- Forced engagement bait ("Who else agrees?", "Let me know in the comments")
+- Unnecessary buzzwords and jargon
+- Perfectly polished corporate speak
+
+The goal is to create content that reads like it came from a real person sharing genuine thoughts, not following a template. Each post should have its own unique personality and flow while delivering valuable insights about {topic}.
+
+Additional Context:
+- Platform context: Adapt tone and style for {platform}'s specific audience and format
+- Topic focus: Demonstrate genuine knowledge/interest in {topic}
+- Authenticity: Write from a place of real experience or understanding
+- Natural expertise: Share insights without trying to prove authority"""
 
     prompts = {
         "linkedin": f"""{base_prompt}

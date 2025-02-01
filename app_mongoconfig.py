@@ -67,10 +67,8 @@ app_config = {
 }
 
 
-def get_platform_specific_prompt(platform, topic, length="medium"):
-    # Define word count ranges
-    length_ranges = {"small": "50-100", "medium": "100-200", "long": "200-300"}
-    word_range = length_ranges.get(length, "100-200")
+def get_platform_specific_prompt(platform, topic, length=200):
+    word_range = f"{length-20}-{length+20}"
 
     # Create a list of diverse opening approaches
     opening_styles = [

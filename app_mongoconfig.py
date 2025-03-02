@@ -28,7 +28,8 @@ CORS(
     resources={
         r"/*": {
             "origins": [
-                os.getenv("FE_URL"),
+                os.getenv("FE_URL") or "",
+                "https://postcraft-lab.vercel.app",
             ],
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": [

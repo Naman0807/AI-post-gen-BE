@@ -30,6 +30,7 @@ CORS(
             "origins": [
                 os.getenv("FE_URL") or "",
                 "https://postcraft-lab.vercel.app",
+                "https://api.iamnirbhay.in",
             ],
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": [

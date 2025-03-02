@@ -331,38 +331,51 @@ def initialize_apis():
         hf_api_key = data.get("hf_api_key")
         gemini_api_key = data.get("gemini_api_key")
 
+        # Debugging: Log received API keys
+        print(f"Received HF API Key: {hf_api_key}")  
+        print(f"Received Gemini API Key: {gemini_api_key}")  
+
         if not hf_api_key or not gemini_api_key:
             return jsonify({"error": "Both API keys are required"}), 400
 
-        # Initialize Hugging Face headers
+        # Initialize Hugging Face API
         app_config["hf_headers"] = {"Authorization": f"Bearer {hf_api_key}"}
         app_config["hf_image_url"] = (
             "https://api-inference.huggingface.co/models/strangerzonehf/Flux-Midjourney-Mix2-LoRA"
         )
 
-        # Initialize Gemini model
-        genai.configure(api_key=gemini_api_key)
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        app_config["gemini_model"] = model
-
-        # Test Hugging Face
+        # Test Hugging Face API
         try:
             test_response = requests.post(
                 app_config["hf_image_url"],
                 headers=app_config["hf_headers"],
                 json={"inputs": "test"},
             )
-            if test_response.status_code not in [
-                200,
-                503,
-            ]:  # 503 is acceptable as it means model is loading
-                raise Exception("Failed to initialize Hugging Face API")
+            print(f"HF API Test Response: {test_response.status_code}, {test_response.text}")  
 
-        except Exception as e:
-            return jsonify({"error": f"API test failed: {str(e)}"}), 500        
+            if test_response.status_code not in [200, 503]: 
+                return jsonify({"error": f"Hugging Face API init failed: {test_response.text}"}), 500
+        except Exception as hf_error:
+            print(f"Hugging Face API Error: {hf_error}")  
+            return jsonify({"error": f"Hugging Face API test failed: {str(hf_error)}"}), 500  
+
+        # Initialize Gemini API
+        try:
+            genai.configure(api_key=gemini_api_key)
+            model = genai.GenerativeModel("gemini-1.5-flash")
+            app_config["gemini_model"] = model
+            print("Gemini API successfully initialized!")  
+        except Exception as gemini_error:
+            print(f"Gemini API Error: {gemini_error}")  
+            return jsonify({"error": f"Gemini API initialization failed: {str(gemini_error)}"}), 500
+
+        # Debugging: Print final configuration
+        print(f"Final App Config: {app_config}")
+
         return jsonify({"message": "APIs initialized successfully"}), 200
 
     except Exception as e:
+        print(f"Initialization failed: {e}")  
         return jsonify({"error": f"Initialization failed: {str(e)}"}), 500
 
 

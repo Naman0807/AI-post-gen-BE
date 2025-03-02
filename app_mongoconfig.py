@@ -65,7 +65,7 @@ app_config = {
     "gemini_key": None,
     "hf_headers": None,
     "hf_image_url": "https://api-inference.huggingface.co/models/strangerzonehf/Flux-Midjourney-Mix2-LoRA",
-    "gemini_model": "gemini-1.5-pro",
+    "gemini_model": "gemini-1.5-flash",
 }
 
 
@@ -362,7 +362,7 @@ def initialize_apis():
         # Initialize Gemini API
         try:
             genai.configure(api_key=gemini_api_key)
-            model = genai.GenerativeModel("gemini-1.5-pro")
+            model = genai.GenerativeModel("gemini-1.5-flash")
             app_config["gemini_model"] = model
             print("Gemini API successfully initialized!")  
         except Exception as gemini_error:

@@ -16,7 +16,7 @@ import os
 import requests
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
-
+import google.generativeai as genai
 
 load_dotenv()
 mongo_uri = os.getenv("ATLAS_URI")
@@ -153,6 +153,9 @@ Twitter-Specific Elements:
 def get_platform_specific_image_prompt(platform, topic):
     """Modified to use Gemini for dynamic prompt generation"""
     try:
+        if not app_config.get("gemini_model"):
+            raise Exception("Gemini model not initialized")
+
         prompt_generation_text = f"""
         Create a detailed prompt for generating an image that perfectly complements a {platform} post about {topic}.
         
@@ -170,12 +173,19 @@ def get_platform_specific_image_prompt(platform, topic):
         Return only the image generation prompt, without any explanations or additional text.
         """
 
-        # Use the global Gemini model instance
-        if app_config.get("gemini_model"):
-            response = app_config["gemini_model"].generate_content(
+        model = app_config["gemini_model"]
+        if not isinstance(model, genai.GenerativeModel):
+            raise Exception("Invalid Gemini model instance")
+
+        try:
+            response = model.generate_content(
                 prompt_generation_text,
                 generation_config={"temperature": 0.7, "top_p": 0.8, "top_k": 40},
             )
+            
+            if not response or not response.text:
+                raise Exception("Failed to generate image prompt")
+                
             generated_prompt = response.text.strip()
 
             # Add platform-specific requirements
@@ -184,12 +194,15 @@ def get_platform_specific_image_prompt(platform, topic):
             else:  # twitter
                 return f"{generated_prompt} Style: Bold, attention-grabbing, optimized for mobile viewing on Twitter."
 
-    except Exception as e:
-        print(f"Error generating image prompt: {str(e)}")
+        except Exception as e:
+            print(f"Error generating prompt with Gemini: {str(e)}")
+            raise e
 
-    # Fallback to original static prompts if Gemini generation fails
-    prompts = {
-        "linkedin": f"""Create a image about {topic} for linkedin:
+    except Exception as e:
+        print(f"Error in image prompt generation: {str(e)}")
+        # Fallback to original static prompts if Gemini generation fails
+        prompts = {
+            "linkedin": f"""Create a image about {topic} for linkedin:
 - Style: Clean, corporate, modern
 - Headline: 6-8 words, short and impactful
 - Font: Bold, modern, high contrast
@@ -197,15 +210,15 @@ def get_platform_specific_image_prompt(platform, topic):
 - Contrast: High-contrast for readability (mobile & desktop)
 - Layout: Clear, organized, headline-focused
 - Goal: Professional, attention-grabbing, clutter-free, engaging""",
-        "twitter": f"""Create a visually stunning Twitter image about {topic}.
+            "twitter": f"""Create a visually stunning Twitter image about {topic}.
 Requirements:
 - Bold, eye-catching design that stops the scroll
 - High-contrast color palette for maximum visibility
 - One impactful, short phrase (5 words max)
 - Clean, minimalist layout optimized for mobile
 - Strong, memorable visuals that leave a lasting impression""",
-    }
-    return prompts.get(platform)
+        }
+        return prompts.get(platform)
 
 
 @app.route("/")
@@ -327,23 +340,12 @@ def initialize_apis():
         )
 
         # Initialize Gemini model
-        import google.generativeai as genai
-
         genai.configure(api_key=gemini_api_key)
-        # Store the actual model object, not just the model name
-        app_config["gemini_model"] = genai.GenerativeModel("gemini-1.5-flash")
-        
-        # Debug to verify we're storing a model object
-        print(f"Gemini model type: {type(app_config['gemini_model'])}")
+        model = genai.GenerativeModel("gemini-pro")
+        app_config["gemini_model"] = model
 
-        # Test both APIs to ensure they work
+        # Test Hugging Face
         try:
-            # Test Gemini by actually generating content
-            test_response = app_config["gemini_model"].generate_content("Test message")
-            if not test_response:
-                raise Exception("Failed to initialize Gemini API")
-
-            # Test Hugging Face
             test_response = requests.post(
                 app_config["hf_image_url"],
                 headers=app_config["hf_headers"],

@@ -330,13 +330,17 @@ def initialize_apis():
         import google.generativeai as genai
 
         genai.configure(api_key=gemini_api_key)
+        # Store the actual model object, not just the model name
         app_config["gemini_model"] = genai.GenerativeModel("gemini-1.5-flash")
+        
+        # Debug to verify we're storing a model object
+        print(f"Gemini model type: {type(app_config['gemini_model'])}")
 
         # Test both APIs to ensure they work
         try:
-            # Test Gemini
-            response = app_config["gemini_model"].generate_content("Test message")
-            if not response:
+            # Test Gemini by actually generating content
+            test_response = app_config["gemini_model"].generate_content("Test message")
+            if not test_response:
                 raise Exception("Failed to initialize Gemini API")
 
             # Test Hugging Face
@@ -352,7 +356,7 @@ def initialize_apis():
                 raise Exception("Failed to initialize Hugging Face API")
 
         except Exception as e:
-            return jsonify({"error": f"API test failed: {str(e)}"}), 500
+            return jsonify({"error": f"API test failed: {str(e)}"}), 500        
         return jsonify({"message": "APIs initialized successfully"}), 200
 
     except Exception as e:

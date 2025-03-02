@@ -342,7 +342,7 @@ def initialize_apis():
 
         # Initialize Gemini model
         genai.configure(api_key=gemini_api_key)
-        model = genai.GenerativeModel("gemini-pro")
+        model = genai.GenerativeModel("gemini-1.5-flash")
         app_config["gemini_model"] = model
 
         # Test Hugging Face

@@ -35,7 +35,6 @@ CORS(
                 "Content-Type",
                 "Authorization",
                 "ngrok-skip-browser-warning",
-                "Access-Control-Allow-Origin",
             ],
             "expose_headers": ["Content-Type", "Authorization"],
         }
@@ -64,45 +63,88 @@ app_config = {
     "gemini_key": None,
     "hf_headers": None,
     "hf_image_url": "https://api-inference.huggingface.co/models/strangerzonehf/Flux-Midjourney-Mix2-LoRA",
-    "gemini_model": "gemini-1.5-pro",
+    "gemini_model": "gemini-1.5-flash",
 }
 
 
-def get_platform_specific_prompt(platform, topic, length="medium"):
-    # Define word count ranges
-    length_ranges = {"small": "50-100", "medium": "100-200", "long": "200-300"}
-    word_range = length_ranges.get(length, "100-200")
+def get_platform_specific_prompt(platform, topic, length=200):
+    word_range = f"{length-20}-{length+20}"
+    base_prompt = f"""Create an authentic {platform} post about {topic} that feels like it was written in a single, natural moment. The post should:
 
-    base_prompt = f"""Write a natural, human-like, and completely unique {platform} post about {topic} that feels authentic and conversational.
-Here’s what to include:
-Tone & Style: Write casually and conversationally, as if you're talking to a friend. Use natural language, with varied sentence structures and phrasing.
-Personal Touch: Include personal opinions, small anecdotes, or experiences to make it relatable.
-Imperfections: Add small imperfections like starting sentences with "And" or "But," using contractions (e.g., "I'm," "you're"), and breaking long ideas into shorter, punchy sentences.
-Paragraph Flow: Vary the lengths of paragraphs. Some should be just one or two lines, others a little longer.
-Engaging Questions: Sprinkle in rhetorical or reflective questions to draw the reader in and keep it dynamic.
-Emotional Subtlety: Infuse a bit of emotion, whether it’s curiosity, excitement, humor, or even mild frustration, to make it feel alive.
-Transitions: Use informal transitions like "Anyway," "So," or "Honestly" to keep it flowing smoothly, as you’d do in a casual conversation.
-Length: Keep the post between {word_range} words, making every word feel purposeful but not overly polished.
-Ultimately, the goal is to write like a real person sharing honest thoughts—not a polished, overly structured essay."""
+VOICE & STRUCTURE
+- Capture a distinct point of view and personality
+- Flow like natural speech while maintaining clear purpose
+- Vary rhythm between longer insights and punchy observations
+- Use organic transitions that emerge from the ideas
+- Hit approximately {word_range} words while staying natural
+
+CONTENT APPROACH
+- Share a specific perspective or experience that sparked your thinking
+- Weave in concrete examples that illustrate your points
+- Build connections between observations
+- End with an insight that feels earned, not forced
+- Optional: Incorporate relevant data points or expert perspectives if they fit naturally
+
+WRITING STYLE
+- Write with your authentic voice, not a formula
+- Mix up sentence patterns - some complex, some direct
+- Include natural pauses where you'd take a breath
+- Make the paragraph length very (if there is any)
+- Use industry terminology naturally, not to show off
+- Let personality shine through while staying professional
+
+AVOID
+- Generic openings ("Here's the thing about...", "I've been thinking...")
+- Overused transition phrases ("That being said", "On the other hand") 
+- Forced engagement bait ("Who else agrees?", "Let me know in the comments")
+- Unnecessary buzzwords and jargon
+- Perfectly polished corporate speak
+
+The goal is to create content that reads like it came from a real person sharing genuine thoughts, not following a template. Each post should have its own unique personality and flow while delivering valuable insights about {topic}.
+
+Additional Context:
+- Platform context: Adapt tone and style for {platform}'s specific audience and format
+- Topic focus: Demonstrate genuine knowledge/interest in {topic}
+- Authenticity: Write from a place of real experience or understanding
+- Natural expertise: Share insights without trying to prove authority
+
+**Note**
+- dont want any type of extra text other then the post contnet.
+
+here is the example output:
+<example>
+Okay, so I've been diving deep into Recurrent Neural Networks lately, and honestly, it's been a wild ride! I remember the first time I tried to wrap my head around LSTMs – pure brain-melt... It felt like trying to understand quantum physics while simultaneously juggling flaming torches... 
+
+But, seriously, the power of RNNs is incredible... I was working on a project predicting customer churn, and using an RNN made a HUGE difference... The accuracy jumped, like, significantly! It was so satisfying to see the model actually *learning* patterns over time, not just spitting out random guesses.
+
+And the best part? The feeling of finally "getting it." That moment when the complex equations suddenly clicked, and I could actually visualize how the network was processing sequential data? Pure magic... It's addictive, I'll admit it.
+
+Anyway, I'm still learning, of course... There are always new challenges, new architectures to explore... It's a constant learning curve, which, let's be honest, can be frustrating sometimes... But that's part of the fun, right?
+
+So, what's your favorite application of RNNs? I'd love to hear what you're working on!
+</example>
+"""
 
     prompts = {
         "linkedin": f"""{base_prompt}
 
-- Write in First Person: Share authentically from your perspective.
-- Tell a Story: Highlight a work experience or lesson learned.
-- Show Vulnerability: Share challenges or growth moments.
-- Be Enthusiastic: Let your passion shine naturally.
-- Use 4-6 Hashtags: Keep them relevant and simple.
-- End with a Question: Spark engagement with an open-ended question.
-- Be Warm, Not Jargony: Stay professional but conversational.
+LinkedIn-Specific Elements:
+- Professional yet approachable tone
+- Industry-relevant insights
+- Strategic use of 3-4 relevant hashtags
+- Clear value proposition or takeaway
+- End with an engaging question or call for discussion
+- Keep formatting clean and scannable
 """,
         "twitter": f"""{base_prompt}
-- Additional Twitter-specific guidelines:
-- Keep it casual and conversational (use stuff like "tbh," "imo," or emojis for extra vibe).
-- Let your personality shine—make it feel like you’re talking, not a bot.
-- Throw in 3-5 relevant hashtags, but make them flow naturally (no hashtag spam).
-- Keep it short and punchy—like a quick thought or reaction you’d share with a friend.
-- Add quirks! Whether it’s humor, sass, or a unique POV, make it memorable.""",
+Twitter-Specific Elements:
+- Crisp, concise messaging
+- Natural voice with personality
+- 2-3 relevant hashtags that flow naturally
+- Conversation-starting element
+- Memorable closing thought or hook
+- Character-conscious structure
+""",
     }
     return prompts.get(platform)
 
@@ -149,7 +191,6 @@ def get_platform_specific_image_prompt(platform, topic):
         "linkedin": f"""Create a image about {topic} for linkedin:
 - Style: Clean, corporate, modern
 - Headline: 6-8 words, short and impactful
-- Additional Text: Minimal, key message only
 - Font: Bold, modern, high contrast
 - Imagery: High-quality, topic-relevant (no generic stock photos)
 - Contrast: High-contrast for readability (mobile & desktop)
@@ -288,7 +329,7 @@ def initialize_apis():
         import google.generativeai as genai
 
         genai.configure(api_key=gemini_api_key)
-        app_config["gemini_model"] = genai.GenerativeModel("gemini-1.5-pro")
+        app_config["gemini_model"] = genai.GenerativeModel("gemini-1.5-flash")
 
         # Test both APIs to ensure they work
         try:
@@ -320,12 +361,28 @@ def initialize_apis():
 def humanize_content(text, platform):
     """Post-process the generated content to make it more human-like"""
     try:
+        # Remove common formulaic starts
+        common_starts = [
+            "okay, so",
+            "well,",
+            "you see,",
+            "i've been thinking",
+            "let me tell you",
+        ]
+        lower_text = text.lower()
+        for start in common_starts:
+            if lower_text.startswith(start):
+                text = text[len(start) :].strip()
+                text = text[0].upper() + text[1:]  # Capitalize first letter
+
         # Add natural variations and imperfections
         variations = {
-            "definitely": ["def", "definitely", "for sure"],
-            "amazing": ["amazing", "awesome", "fantastic", "great"],
-            "think": ["think", "believe", "feel like"],
-            "very": ["very", "really", "pretty", "quite"],
+            "definitely": ["def", "definitely", "for sure", "absolutely"],
+            "amazing": ["amazing", "awesome", "fantastic", "great", "incredible"],
+            "think": ["think", "believe", "feel", "sense"],
+            "very": ["very", "really", "quite", "pretty"],
+            "important": ["important", "crucial", "key", "essential"],
+            "interesting": ["interesting", "fascinating", "intriguing", "compelling"],
         }
 
         # Replace some words with their variations randomly
@@ -333,23 +390,16 @@ def humanize_content(text, platform):
             if word in text.lower():
                 text = text.replace(word, random.choice(alternatives))
 
-        # Add some natural pauses and flow
-        text = text.replace(". ", "... ")  # Occasionally add ellipsis
-        text = text.replace(
-            "!", random.choice(["!", "!!", "! "])
-        )  # Vary exclamation marks
-
         # Platform-specific humanization
         if platform == "twitter":
             # Make it more Twitter-like
-            text = text.replace("because", "bc")
-            text = text.replace("with", "w/")
-            text = text.replace("without", "w/o")
+            if random.random() < 0.3:  # 30% chance to use shorter forms
+                text = text.replace("because", "bc")
+                text = text.replace("with", "w/")
+                text = text.replace("without", "w/o")
 
         # Clean up any artificial patterns
-        text = text.replace("  ", " ")  # Remove double spaces
-        text = text.replace("...", "...")  # Standardize ellipsis
-        text = text.replace("!!", "!")  # Clean up multiple exclamations
+        text = text.replace("  ", " ").strip()
 
         return text
     except Exception as e:

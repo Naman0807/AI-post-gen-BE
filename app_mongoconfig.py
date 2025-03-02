@@ -63,7 +63,7 @@ app_config = {
     "gemini_key": None,
     "hf_headers": None,
     "hf_image_url": "https://api-inference.huggingface.co/models/strangerzonehf/Flux-Midjourney-Mix2-LoRA",
-    "gemini_model": "gemini-2.0-flash-exp",
+    "gemini_model": "gemini-1.5-flash",
 }
 
 
@@ -89,6 +89,7 @@ WRITING STYLE
 - Write with your authentic voice, not a formula
 - Mix up sentence patterns - some complex, some direct
 - Include natural pauses where you'd take a breath
+- Make the paragraph length very (if there is any)
 - Use industry terminology naturally, not to show off
 - Let personality shine through while staying professional
 
@@ -105,7 +106,24 @@ Additional Context:
 - Platform context: Adapt tone and style for {platform}'s specific audience and format
 - Topic focus: Demonstrate genuine knowledge/interest in {topic}
 - Authenticity: Write from a place of real experience or understanding
-- Natural expertise: Share insights without trying to prove authority"""
+- Natural expertise: Share insights without trying to prove authority
+
+**Note**
+- dont want any type of extra text other then the post contnet.
+
+here is the example output:
+<example>
+Okay, so I've been diving deep into Recurrent Neural Networks lately, and honestly, it's been a wild ride! I remember the first time I tried to wrap my head around LSTMs – pure brain-melt... It felt like trying to understand quantum physics while simultaneously juggling flaming torches... 
+
+But, seriously, the power of RNNs is incredible... I was working on a project predicting customer churn, and using an RNN made a HUGE difference... The accuracy jumped, like, significantly! It was so satisfying to see the model actually *learning* patterns over time, not just spitting out random guesses.
+
+And the best part? The feeling of finally "getting it." That moment when the complex equations suddenly clicked, and I could actually visualize how the network was processing sequential data? Pure magic... It's addictive, I'll admit it.
+
+Anyway, I'm still learning, of course... There are always new challenges, new architectures to explore... It's a constant learning curve, which, let's be honest, can be frustrating sometimes... But that's part of the fun, right?
+
+So, what's your favorite application of RNNs? I'd love to hear what you're working on!
+</example>
+"""
 
     prompts = {
         "linkedin": f"""{base_prompt}
@@ -173,7 +191,6 @@ def get_platform_specific_image_prompt(platform, topic):
         "linkedin": f"""Create a image about {topic} for linkedin:
 - Style: Clean, corporate, modern
 - Headline: 6-8 words, short and impactful
-- Additional Text: Minimal, key message only
 - Font: Bold, modern, high contrast
 - Imagery: High-quality, topic-relevant (no generic stock photos)
 - Contrast: High-contrast for readability (mobile & desktop)
@@ -312,7 +329,7 @@ def initialize_apis():
         import google.generativeai as genai
 
         genai.configure(api_key=gemini_api_key)
-        app_config["gemini_model"] = genai.GenerativeModel("gemini-2.0-flash-exp")
+        app_config["gemini_model"] = genai.GenerativeModel("gemini-1.5-flash")
 
         # Test both APIs to ensure they work
         try:

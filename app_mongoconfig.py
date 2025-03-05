@@ -28,7 +28,7 @@ CORS(
     resources={
         r"/*": {
             "origins": [
-                os.getenv("FE_URL") or "",
+                os.getenv("FE_URL") or "*",
                 "https://postcraft-lab.vercel.app",
                 "https://api.iamnirbhay.in",
             ],

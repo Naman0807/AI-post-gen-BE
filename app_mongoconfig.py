@@ -331,8 +331,7 @@ def initialize_apis():
         if not hf_api_key or not gemini_api_key:
             return jsonify({"error": "Both API keys are required"}), 400
 
-        # Reset app_config before initialization
-        app_config["gemini_model"] = None
+        app_config["gemini_model"] = "gemini-1.5-flash"
 
         # Initialize Gemini API with robust error handling
         try:

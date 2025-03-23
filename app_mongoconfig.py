@@ -27,11 +27,7 @@ CORS(
     app,
     resources={
         r"/*": {
-            "origins": [
-                os.getenv("FE_URL") or "*",
-                "https://postcraft-lab.vercel.app",
-                "https://api.iamnirbhay.in",
-            ],
+            "origins": ["https://postcraft-lab.vercel.app"],
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": [
                 "Content-Type",
@@ -183,10 +179,10 @@ def get_platform_specific_image_prompt(platform, topic):
                 prompt_generation_text,
                 generation_config={"temperature": 0.7, "top_p": 0.8, "top_k": 40},
             )
-            
+
             if not response or not response.text:
                 raise Exception("Failed to generate image prompt")
-                
+
             generated_prompt = response.text.strip()
 
             # Add platform-specific requirements
@@ -341,40 +337,55 @@ def initialize_apis():
         # Initialize Gemini API with robust error handling
         try:
             import google.generativeai as genai
-            
+
             # Configure Gemini API
             genai.configure(api_key=gemini_api_key)
-            
+
             # Create model with explicit error handling
             try:
                 model = genai.GenerativeModel("gemini-1.5-flash")
-                
+
                 # Verify model works with a test generation
-                test_response = model.generate_content("Hello, can you confirm initialization?")
-                
+                test_response = model.generate_content(
+                    "Hello, can you confirm initialization?"
+                )
+
                 # Store the actual model instance
                 app_config["gemini_model"] = model
                 print("Gemini API successfully initialized and tested!")
-                
+
             except Exception as model_error:
                 print(f"Error creating or testing Gemini model: {model_error}")
-                return jsonify({"error": f"Gemini model creation failed: {str(model_error)}"}), 500
+                return (
+                    jsonify(
+                        {"error": f"Gemini model creation failed: {str(model_error)}"}
+                    ),
+                    500,
+                )
 
         except ImportError:
             return jsonify({"error": "google-generativeai library not installed"}), 500
         except Exception as api_error:
             print(f"Gemini API configuration error: {api_error}")
-            return jsonify({"error": f"Gemini API configuration failed: {str(api_error)}"}), 500
+            return (
+                jsonify(
+                    {"error": f"Gemini API configuration failed: {str(api_error)}"}
+                ),
+                500,
+            )
 
         # Additional API key configurations (Hugging Face)
         app_config["hf_headers"] = {"Authorization": f"Bearer {hf_api_key}"}
-        app_config["hf_image_url"] = "https://api-inference.huggingface.co/models/strangerzonehf/Flux-Midjourney-Mix2-LoRA"
+        app_config["hf_image_url"] = (
+            "https://api-inference.huggingface.co/models/strangerzonehf/Flux-Midjourney-Mix2-LoRA"
+        )
 
         return jsonify({"message": "APIs initialized successfully"}), 200
 
     except Exception as e:
         print(f"Initialization failed: {e}")
         return jsonify({"error": f"Initialization failed: {str(e)}"}), 500
+
 
 def humanize_content(text, platform):
     """Post-process the generated content to make it more human-like"""

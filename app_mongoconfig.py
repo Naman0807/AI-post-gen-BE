@@ -331,9 +331,6 @@ def initialize_apis():
         if not hf_api_key or not gemini_api_key:
             return jsonify({"error": "Both API keys are required"}), 400
 
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        app_config["gemini_model"] = model
-
         # Initialize Gemini API with robust error handling
         try:
             import google.generativeai as genai
@@ -349,6 +346,7 @@ def initialize_apis():
                 test_response = model.generate_content(
                     "Hello, can you confirm initialization?"
                 )
+                print("Gemini API test response:", test_response.text)
 
                 # Store the actual model instance
                 app_config["gemini_model"] = model

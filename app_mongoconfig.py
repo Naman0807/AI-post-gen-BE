@@ -536,13 +536,7 @@ def generate_post():
                         headers=app_config["hf_headers"],
                         json={
                             "inputs": base_prompt,
-                            "parameters": {
-                                "height": 256,  # Smaller resolution
-                                "width": 256,
-                                "num_inference_steps": 30,
-                            },
                         },
-                        stream=True,
                     )
                     print(f"HF API Status: {image_response.status_code}")
                     print(f"HF API Response: {image_response.text}")

@@ -499,8 +499,8 @@ def humanize_content(text, platform):
 def generate_post():
     try:
         print("Generating post... start")
-        # Ensure API keys are initialized before proceeding
         ensure_api_keys_initialized()
+        print("API keys initialized:", app_config.get("hf_headers") is not None)
 
         user_id = get_jwt_identity()
         data = request.json
@@ -514,62 +514,44 @@ def generate_post():
         if not topic or not platform:
             return jsonify({"error": "Topic and platform are required"}), 400
 
-        # Generate post content
+        # Generate text
         text_prompt = get_platform_specific_prompt(platform, topic, post_length)
-        generation_config = {
-            "temperature": temperature,
-            "top_p": 0.95,
-            "top_k": 50,
-        }
+        response = app_config["gemini_model"].generate_content(
+            text_prompt,
+            generation_config={"temperature": temperature, "top_p": 0.95, "top_k": 50},
+        )
+        best_content = humanize_content(
+            response.text.strip().replace("**", "").replace("#", " #"), platform
+        )
 
-        # Generate content
-        attempts = 3
-        best_content = None
-        for _ in range(attempts):
-            response = app_config["gemini_model"].generate_content(
-                text_prompt, generation_config=generation_config
-            )
-            content = response.text.strip()
-            content = content.replace("**", "").replace("#", " #")
-            humanized_content = humanize_content(content, platform)
-            best_content = humanized_content
-
-        if platform == "twitter" and len(best_content) > 280:
-            best_content = best_content[:277] + "..."
-
-        # Initialize empty images array
+        # Generate images
         images = []
-        print("Generating post image... start")
-        # Only generate images if includeImages is True and HF API is initialized
         if include_images and app_config.get("hf_headers"):
-            variations = [
-                "",
-                "with a different perspective",
-                "with alternative lighting",
-                "with a unique composition",
-            ]
-
+            print("Attempting image generation...")
             for i in range(image_count):
                 base_prompt = get_platform_specific_image_prompt(platform, topic)
+                try:
+                    image_response = requests.post(
+                        app_config["hf_image_url"],
+                        headers=app_config["hf_headers"],
+                        json={"inputs": base_prompt},
+                    )
+                    print(f"HF API Status: {image_response.status_code}")
+                    print(f"HF API Response: {image_response.text}")
+                    if image_response.status_code != 200:
+                        raise Exception(
+                            f"Image generation failed: {image_response.text}"
+                        )
+                    image_data = base64.b64encode(image_response.content).decode(
+                        "utf-8"
+                    )
+                    images.append(f"data:image/jpeg;base64,{image_data}")
+                except requests.RequestException as req_err:
+                    print(f"Image generation error: {req_err}")
+                    images.append(None)  # Placeholder for failed image
+        else:
+            print("Image generation skipped: No HF headers or includeImages=False")
 
-                if i > 0:
-                    base_prompt += f" {variations[i % len(variations)]}"
-
-                image_response = requests.post(
-                    app_config["hf_image_url"],
-                    headers=app_config["hf_headers"],
-                    json={
-                        "inputs": base_prompt,
-                        "negative_prompt": "duplicate, similar images, same composition, text overlay, watermarks, logos",
-                        "seed": random.randint(1, 999999),
-                    },
-                )
-
-                if image_response.status_code != 200:
-                    raise Exception(f"Image generation failed: {image_response.text}")
-
-                image_data = base64.b64encode(image_response.content).decode("utf-8")
-                images.append(f"data:image/jpeg;base64,{image_data}")
         print("Generating post image... end")
         # Calculate engagement score
         engagement_prompt = f"""
@@ -609,20 +591,25 @@ def generate_post():
 
         db.users.update_one({"_id": ObjectId(user_id)}, {"$push": {"posts": post}})
 
-        return (
-            jsonify(
-                {
-                    "text": best_content,
-                    "images": images,
-                    "engagement_score": engagement_score,
-                }
-            ),
-            200,
-            print("Post generated successfully!"),
+        response = jsonify(
+            {
+                "text": best_content,
+                "images": images,
+                "engagement_score": engagement_score,
+            }
         )
+        response.headers.add(
+            "Access-Control-Allow-Origin", "https://postcraft-lab.vercel.app"
+        )
+        return response, 200
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        print(f"Full error: {str(e)}")
+        response = jsonify({"error": str(e)})
+        response.headers.add(
+            "Access-Control-Allow-Origin", "https://postcraft-lab.vercel.app"
+        )
+        return response, 500
 
 
 @app.route("/user/posts", methods=["GET"])

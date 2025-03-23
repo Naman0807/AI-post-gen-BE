@@ -55,13 +55,12 @@ except Exception as e:
     print("MongoDB Atlas connection error:", str(e))
     raise e
 
-model = genai.GenerativeModel("gemini-1.5-flash")
 app_config = {
     "huggingface_key": None,
     "gemini_key": None,
     "hf_headers": None,
     "hf_image_url": "https://api-inference.huggingface.co/models/strangerzonehf/Flux-Midjourney-Mix2-LoRA",
-    "gemini_model": model,
+    "gemini_model": None,
 }
 
 

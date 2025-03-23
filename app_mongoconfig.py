@@ -18,9 +18,11 @@ from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 import google.generativeai as genai
 
+# Load environment variables
 load_dotenv()
 mongo_uri = os.getenv("ATLAS_URI")
 print(os.getenv("FE_URL"))
+
 # Initialize Flask app
 app = Flask(__name__)
 CORS(
@@ -46,6 +48,7 @@ app.config["JWT_SECRET_KEY"] = "1we3W4rt"
 # Initialize JWT
 jwt = JWTManager(app)
 
+# MongoDB Connection
 try:
     client = MongoClient(mongo_uri, server_api=ServerApi("1"))
     db = client.postcraft
@@ -55,6 +58,7 @@ except Exception as e:
     print("MongoDB Atlas connection error:", str(e))
     raise e
 
+# Global app configuration for API keys
 app_config = {
     "huggingface_key": None,
     "gemini_key": None,
@@ -64,20 +68,54 @@ app_config = {
 }
 
 
-def initialize_gemini_on_startup():
-    # Find a user with API keys (e.g., the first user who completed setup)
-    user = db.users.find_one({"setup_completed": True})
-    if user and user.get("hf_api_key") and user.get("gemini_api_key"):
-        try:
-            genai.configure(api_key=user["gemini_api_key"])
+def initialize_api_keys():
+    """
+    Fetch API keys from the database and initialize Gemini and Hugging Face APIs.
+    Returns True if successful, False otherwise.
+    """
+    try:
+        # Find a user with API keys (e.g., the first user who completed setup)
+        user = db.users.find_one({"setup_completed": True})
+        if user and user.get("hf_api_key") and user.get("gemini_api_key"):
+            # Store the keys in app_config
+            app_config["huggingface_key"] = user["hf_api_key"]
+            app_config["gemini_key"] = user["gemini_api_key"]
+
+            # Initialize Gemini API
+            genai.configure(api_key=app_config["gemini_key"])
             model = genai.GenerativeModel("gemini-1.5-flash")
             app_config["gemini_model"] = model
-            app_config["hf_headers"] = {"Authorization": f"Bearer {user['hf_api_key']}"}
-            print("Gemini API reinitialized on startup")
-        except Exception as e:
-            print(f"Failed to reinitialize Gemini on startup: {e}")
-    else:
-        print("No user with API keys found for Gemini initialization")
+
+            # Initialize Hugging Face headers
+            app_config["hf_headers"] = {
+                "Authorization": f"Bearer {app_config['huggingface_key']}"
+            }
+
+            print("API keys successfully initialized from database")
+            return True
+        else:
+            print("No user with API keys found for initialization")
+            return False
+    except Exception as e:
+        print(f"Failed to initialize API keys: {e}")
+        return False
+
+
+def ensure_api_keys_initialized():
+    """
+    Ensure that API keys are initialized before proceeding.
+    If not initialized, fetch them from the database.
+    """
+    if app_config["gemini_model"] is None or app_config["hf_headers"] is None:
+        print("API keys not initialized. Attempting to fetch from database...")
+        success = initialize_api_keys()
+        if not success:
+            raise Exception("Failed to initialize API keys from database")
+
+
+# Initialize API keys at startup
+with app.app_context():
+    initialize_api_keys()
 
 
 def get_platform_specific_prompt(platform, topic, length=200):
@@ -165,8 +203,7 @@ Twitter-Specific Elements:
 def get_platform_specific_image_prompt(platform, topic):
     """Modified to use Gemini for dynamic prompt generation"""
     try:
-        if not app_config.get("gemini_model"):
-            raise Exception("Gemini model not initialized")
+        ensure_api_keys_initialized()  # Ensure API keys are initialized
 
         prompt_generation_text = f"""
         Create a detailed prompt for generating an image that perfectly complements a {platform} post about {topic}.
@@ -186,9 +223,6 @@ def get_platform_specific_image_prompt(platform, topic):
         """
 
         model = app_config["gemini_model"]
-        if not isinstance(model, genai.GenerativeModel):
-            raise Exception("Invalid Gemini model instance")
-
         try:
             response = model.generate_content(
                 prompt_generation_text,
@@ -333,7 +367,6 @@ def login():
         return jsonify({"error": str(e)}), 500
 
 
-# Then modify your initialize_apis function
 @app.route("/initialize", methods=["POST"])
 @jwt_required()
 def initialize_apis():
@@ -368,6 +401,9 @@ def initialize_apis():
 
                 # Store the actual model instance
                 app_config["gemini_model"] = model
+                app_config["gemini_key"] = gemini_api_key
+                app_config["huggingface_key"] = hf_api_key
+                app_config["hf_headers"] = {"Authorization": f"Bearer {hf_api_key}"}
                 print("Gemini API successfully initialized and tested!")
 
             except Exception as model_error:
@@ -387,12 +423,6 @@ def initialize_apis():
                 ),
                 500,
             )
-
-        # Additional API key configurations (Hugging Face)
-        app_config["hf_headers"] = {"Authorization": f"Bearer {hf_api_key}"}
-        app_config["hf_image_url"] = (
-            "https://api-inference.huggingface.co/models/strangerzonehf/Flux-Midjourney-Mix2-LoRA"
-        )
 
         # Save API keys to the user's database record
         user_id = get_jwt_identity()
@@ -466,15 +496,10 @@ def humanize_content(text, platform):
 @app.route("/generate_post", methods=["POST"])
 @jwt_required()
 def generate_post():
-    if not app_config.get("gemini_model"):
-        return (
-            jsonify(
-                {"error": "Gemini API not initialized. Please initialize APIs first"}
-            ),
-            400,
-        )
-
     try:
+        # Ensure API keys are initialized before proceeding
+        ensure_api_keys_initialized()
+
         user_id = get_jwt_identity()
         data = request.json
         topic = data.get("topic")
@@ -601,7 +626,6 @@ def generate_post():
 @jwt_required()
 def get_user_posts():
     try:
-
         user_id = get_jwt_identity()
         user = db.users.find_one({"_id": ObjectId(user_id)})
 
@@ -615,7 +639,7 @@ def get_user_posts():
         return jsonify({"posts": posts}), 200
 
     except Exception as e:
-        print(f"Error in get_user_posts: " + e)
+        print(f"Error in get_user_posts: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 
@@ -644,5 +668,3 @@ def delete_post(post_id):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
-    with app.app_context():
-        initialize_gemini_on_startup()

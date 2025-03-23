@@ -63,7 +63,7 @@ app_config = {
     "huggingface_key": None,
     "gemini_key": None,
     "hf_headers": None,
-    "hf_image_url": "https://api-inference.huggingface.co/models/strangerzonehf/Flux-Midjourney-Mix2-LoRA",
+    "hf_image_url": "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2-1",
     "gemini_model": None,
 }
 
@@ -534,7 +534,15 @@ def generate_post():
                     image_response = requests.post(
                         app_config["hf_image_url"],
                         headers=app_config["hf_headers"],
-                        json={"inputs": base_prompt},
+                        json={
+                            "inputs": base_prompt,
+                            "parameters": {
+                                "height": 256,  # Smaller resolution
+                                "width": 256,
+                                "num_inference_steps": 30,
+                            },
+                        },
+                        stream=True,
                     )
                     print(f"HF API Status: {image_response.status_code}")
                     print(f"HF API Response: {image_response.text}")

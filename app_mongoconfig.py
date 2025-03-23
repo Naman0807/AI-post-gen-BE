@@ -64,6 +64,22 @@ app_config = {
 }
 
 
+def initialize_gemini_on_startup():
+    # Find a user with API keys (e.g., the first user who completed setup)
+    user = db.users.find_one({"setup_completed": True})
+    if user and user.get("hf_api_key") and user.get("gemini_api_key"):
+        try:
+            genai.configure(api_key=user["gemini_api_key"])
+            model = genai.GenerativeModel("gemini-1.5-flash")
+            app_config["gemini_model"] = model
+            app_config["hf_headers"] = {"Authorization": f"Bearer {user['hf_api_key']}"}
+            print("Gemini API reinitialized on startup")
+        except Exception as e:
+            print(f"Failed to reinitialize Gemini on startup: {e}")
+    else:
+        print("No user with API keys found for Gemini initialization")
+
+
 def get_platform_specific_prompt(platform, topic, length=200):
     word_range = f"{length-20}-{length+20}"
     base_prompt = f"""Create an authentic {platform} post about {topic} that feels like it was written in a single, natural moment. The post should:
@@ -326,14 +342,17 @@ def initialize_apis():
         hf_api_key = data.get("hf_api_key")
         gemini_api_key = data.get("gemini_api_key")
 
+        # Log the API keys for debugging (be careful not to expose in production)
+        print(
+            f"Received API keys - HuggingFace: {hf_api_key}, Gemini: {gemini_api_key}"
+        )
+
         # Validate API keys
         if not hf_api_key or not gemini_api_key:
             return jsonify({"error": "Both API keys are required"}), 400
 
         # Initialize Gemini API with robust error handling
         try:
-            import google.generativeai as genai
-
             # Configure Gemini API
             genai.configure(api_key=gemini_api_key)
 
@@ -360,8 +379,6 @@ def initialize_apis():
                     500,
                 )
 
-        except ImportError:
-            return jsonify({"error": "google-generativeai library not installed"}), 500
         except Exception as api_error:
             print(f"Gemini API configuration error: {api_error}")
             return (
@@ -375,6 +392,19 @@ def initialize_apis():
         app_config["hf_headers"] = {"Authorization": f"Bearer {hf_api_key}"}
         app_config["hf_image_url"] = (
             "https://api-inference.huggingface.co/models/strangerzonehf/Flux-Midjourney-Mix2-LoRA"
+        )
+
+        # Save API keys to the user's database record
+        user_id = get_jwt_identity()
+        db.users.update_one(
+            {"_id": ObjectId(user_id)},
+            {
+                "$set": {
+                    "hf_api_key": hf_api_key,
+                    "gemini_api_key": gemini_api_key,
+                    "setup_completed": True,
+                }
+            },
         )
 
         return jsonify({"message": "APIs initialized successfully"}), 200
@@ -614,3 +644,5 @@ def delete_post(post_id):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
+    with app.app_context():
+        initialize_gemini_on_startup()

@@ -63,7 +63,7 @@ app_config = {
     "huggingface_key": None,
     "gemini_key": None,
     "hf_headers": None,
-    "hf_image_url": "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2-1",
+    "hf_image_url": "https://api-inference.huggingface.co/models/Jovie/Midjourney",
     "gemini_model": None,
 }
 

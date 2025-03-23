@@ -325,8 +325,8 @@ def register():
                 }
             ),
             201,
+            print("User registered successfully!" + new_user["name"]),
         )
-
     except Exception as e:
         print("Registration error:", str(e))
         return jsonify({"error": "Registration failed: " + str(e)}), 500
@@ -361,6 +361,7 @@ def login():
                 }
             ),
             200,
+            print("User logged in successfully!" + user["name"]),
         )
 
     except Exception as e:
@@ -436,7 +437,7 @@ def initialize_apis():
                 }
             },
         )
-
+        print("API keys saved to user record successfully!")
         return jsonify({"message": "APIs initialized successfully"}), 200
 
     except Exception as e:
@@ -497,6 +498,7 @@ def humanize_content(text, platform):
 @jwt_required()
 def generate_post():
     try:
+        print("Generating post... start")
         # Ensure API keys are initialized before proceeding
         ensure_api_keys_initialized()
 
@@ -537,7 +539,7 @@ def generate_post():
 
         # Initialize empty images array
         images = []
-
+        print("Generating post image... start")
         # Only generate images if includeImages is True and HF API is initialized
         if include_images and app_config.get("hf_headers"):
             variations = [
@@ -568,7 +570,7 @@ def generate_post():
 
                 image_data = base64.b64encode(image_response.content).decode("utf-8")
                 images.append(f"data:image/jpeg;base64,{image_data}")
-
+        print("Generating post image... end")
         # Calculate engagement score
         engagement_prompt = f"""
         Analyze this social media post for {platform} and provide an engagement score out of 100. Consider the following factors:
@@ -616,6 +618,7 @@ def generate_post():
                 }
             ),
             200,
+            print("Post generated successfully!"),
         )
 
     except Exception as e:
@@ -635,7 +638,7 @@ def get_user_posts():
         posts = user.get("posts", [])
         for post in posts:
             post["_id"] = str(post["_id"])
-
+        print("Posts fetched successfully!")
         return jsonify({"posts": posts}), 200
 
     except Exception as e:
@@ -660,7 +663,6 @@ def delete_post(post_id):
             return jsonify({"message": "Post deleted successfully"}), 200
         else:
             return jsonify({"error": "Post not found or unauthorized"}), 404
-
     except Exception as e:
         print(f"Delete error: {str(e)}")
         return jsonify({"error": "Server error occurred"}), 500

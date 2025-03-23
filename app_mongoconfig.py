@@ -29,7 +29,7 @@ CORS(
     app,
     resources={
         r"/*": {
-            "origins": ["https://postcraft-lab.vercel.app"],
+            "origins": ["https://postcraft-lab.vercel.app","http://localhost:3000"],
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": [
                 "Content-Type",

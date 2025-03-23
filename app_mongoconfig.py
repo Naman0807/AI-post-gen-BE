@@ -55,13 +55,13 @@ except Exception as e:
     print("MongoDB Atlas connection error:", str(e))
     raise e
 
-
+model = genai.GenerativeModel("gemini-1.5-flash")
 app_config = {
     "huggingface_key": None,
     "gemini_key": None,
     "hf_headers": None,
     "hf_image_url": "https://api-inference.huggingface.co/models/strangerzonehf/Flux-Midjourney-Mix2-LoRA",
-    "gemini_model": "gemini-1.5-flash",
+    "gemini_model": model,
 }
 
 
@@ -331,7 +331,8 @@ def initialize_apis():
         if not hf_api_key or not gemini_api_key:
             return jsonify({"error": "Both API keys are required"}), 400
 
-        app_config["gemini_model"] = "gemini-1.5-flash"
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        app_config["gemini_model"] = model
 
         # Initialize Gemini API with robust error handling
         try:

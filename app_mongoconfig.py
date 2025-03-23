@@ -538,16 +538,17 @@ def generate_post():
                             "inputs": base_prompt,
                         },
                     )
-                    print(f"HF API Status: {image_response.status_code}")
-                    print(f"HF API Response: {image_response.text}")
-                    if image_response.status_code != 200:
-                        raise Exception(
-                            f"Image generation failed: {image_response.text}"
+                    if image_response.status_code == 200:
+                        image_data = base64.b64encode(image_response.content).decode(
+                            "utf-8"
                         )
-                    image_data = base64.b64encode(image_response.content).decode(
-                        "utf-8"
-                    )
-                    images.append(f"data:image/jpeg;base64,{image_data}")
+                        images.append(f"data:image/jpeg;base64,{image_data}")
+                    else:
+                        print(
+                            f"Image generation failed with status code {image_response.status_code}"
+                        )
+                        image_error = image_response.json().get("error")
+                        
                 except requests.RequestException as req_err:
                     print(f"Image generation error: {req_err}")
                     images.append(None)  # Placeholder for failed image
@@ -598,6 +599,7 @@ def generate_post():
                 "text": best_content,
                 "images": images,
                 "engagement_score": engagement_score,
+                "image_error": image_error if include_images else None,
             }
         )
         response.headers.add(

@@ -29,7 +29,7 @@ CORS(
     app,
     resources={
         r"/*": {
-            "origins": ["https://postcraft-lab.vercel.app","http://localhost:3000"],
+            "origins": ["https://postcraft-lab.vercel.app", "http://localhost:3000"],
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": [
                 "Content-Type",
@@ -63,7 +63,7 @@ app_config = {
     "huggingface_key": None,
     "gemini_key": None,
     "hf_headers": None,
-    "hf_image_url": "https://api-inference.huggingface.co/models/Jovie/Midjourney",
+    "hf_image_url": "https://api-inference.huggingface.co/models/stable-diffusion-v1-5/stable-diffusion-v1-5",
     "gemini_model": None,
 }
 
@@ -537,18 +537,22 @@ def generate_post():
                         headers=app_config["hf_headers"],
                         json={
                             "inputs": base_prompt,
+                            "height": 512,  # Example value
+                            "width": 512,  # Example value
+                            "num_inference_steps": 10,  # Example value
                         },
                     )
-                    print(f"HF API Status: {image_response.status_code}")
-                    print(f"HF API Response: {image_response.text}")
-                    if image_response.status_code != 200:
-                        raise Exception(
-                            f"Image generation failed: {image_response.text}"
+                    if image_response.status_code == 200:
+                        image_data = base64.b64encode(image_response.content).decode(
+                            "utf-8"
                         )
-                    image_data = base64.b64encode(image_response.content).decode(
-                        "utf-8"
-                    )
-                    images.append(f"data:image/jpeg;base64,{image_data}")
+                        images.append(f"data:image/jpeg;base64,{image_data}")
+                    else:
+                        print(
+                            f"Image generation failed with status code {image_response.status_code}"
+                        )
+                        image_error = image_response.json().get("error")
+
                 except requests.RequestException as req_err:
                     print(f"Image generation error: {req_err}")
                     images.append(None)  # Placeholder for failed image
@@ -599,6 +603,7 @@ def generate_post():
                 "text": best_content,
                 "images": images,
                 "engagement_score": engagement_score,
+                "image_error": image_error if include_images else None,
             }
         )
         response.headers.add(

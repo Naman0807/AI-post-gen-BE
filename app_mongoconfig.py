@@ -526,6 +526,7 @@ def generate_post():
 
         # Generate images
         images = []
+        image_error = None
         if include_images and app_config.get("hf_headers"):
             print("Attempting image generation...")
             for i in range(image_count):
@@ -598,26 +599,23 @@ def generate_post():
 
         db.users.update_one({"_id": ObjectId(user_id)}, {"$push": {"posts": post}})
 
-        response = jsonify(
-            {
-                "text": best_content,
-                "images": images,
-                "engagement_score": engagement_score,
-                "image_error": image_error if include_images else None,
-            }
+        # Don't manually add CORS headers - let Flask-CORS handle it
+        return (
+            jsonify(
+                {
+                    "text": best_content,
+                    "images": images,
+                    "engagement_score": engagement_score,
+                    "image_error": image_error if include_images else None,
+                }
+            ),
+            200,
         )
-        response.headers.add(
-            "Access-Control-Allow-Origin", "https://postcraft-lab.vercel.app"
-        )
-        return response, 200
 
     except Exception as e:
         print(f"Full error: {str(e)}")
-        response = jsonify({"error": str(e)})
-        response.headers.add(
-            "Access-Control-Allow-Origin", "https://postcraft-lab.vercel.app"
-        )
-        return response, 500
+        # Don't manually add CORS headers here either
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/user/posts", methods=["GET"])

@@ -63,7 +63,7 @@ app_config = {
     "huggingface_key": None,
     "gemini_key": None,
     "hf_headers": None,
-    "hf_image_url": "https://api-inference.huggingface.co/models/Jovie/Midjourney",
+    "hf_image_url": "https://api-inference.huggingface.co/models/stable-diffusion-v1-5/stable-diffusion-v1-5",
     "gemini_model": None,
 }
 
@@ -536,6 +536,9 @@ def generate_post():
                         headers=app_config["hf_headers"],
                         json={
                             "inputs": base_prompt,
+                            "height": 512,  # Example value
+                            "width": 512,  # Example value
+                            "num_inference_steps": 10,  # Example value
                         },
                     )
                     if image_response.status_code == 200:
@@ -548,7 +551,7 @@ def generate_post():
                             f"Image generation failed with status code {image_response.status_code}"
                         )
                         image_error = image_response.json().get("error")
-                        
+
                 except requests.RequestException as req_err:
                     print(f"Image generation error: {req_err}")
                     images.append(None)  # Placeholder for failed image

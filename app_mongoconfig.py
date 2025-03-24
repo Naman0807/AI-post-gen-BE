@@ -29,7 +29,7 @@ CORS(
     app,
     resources={
         r"/*": {
-            "origins": ["https://postcraft-lab.vercel.app"],
+            "origins": ["https://postcraft-lab.vercel.app","http://localhost:3000"],
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": [
                 "Content-Type",
@@ -529,8 +529,9 @@ def generate_post():
         if include_images and app_config.get("hf_headers"):
             print("Attempting image generation...")
             for i in range(image_count):
-                base_prompt = get_platform_specific_image_prompt(platform, topic)
                 try:
+                    print("inside try block...")
+                    base_prompt = get_platform_specific_image_prompt(platform, topic)
                     image_response = requests.post(
                         app_config["hf_image_url"],
                         headers=app_config["hf_headers"],

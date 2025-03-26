@@ -16,20 +16,20 @@ import os
 import requests
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
+import google.generativeai as genai
 
-
+# Load environment variables
 load_dotenv()
 mongo_uri = os.getenv("ATLAS_URI")
 print(os.getenv("FE_URL"))
+
 # Initialize Flask app
 app = Flask(__name__)
 CORS(
     app,
     resources={
         r"/*": {
-            "origins": [
-                os.getenv("FE_URL"),
-            ],
+            "origins": ["https://postcraft-lab.vercel.app", "http://localhost:3000"],
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": [
                 "Content-Type",
@@ -48,6 +48,7 @@ app.config["JWT_SECRET_KEY"] = "1we3W4rt"
 # Initialize JWT
 jwt = JWTManager(app)
 
+# MongoDB Connection
 try:
     client = MongoClient(mongo_uri, server_api=ServerApi("1"))
     db = client.postcraft
@@ -57,14 +58,64 @@ except Exception as e:
     print("MongoDB Atlas connection error:", str(e))
     raise e
 
-
+# Global app configuration for API keys
 app_config = {
     "huggingface_key": None,
     "gemini_key": None,
     "hf_headers": None,
-    "hf_image_url": "https://api-inference.huggingface.co/models/strangerzonehf/Flux-Midjourney-Mix2-LoRA",
-    "gemini_model": "gemini-1.5-flash",
+    "hf_image_url": "https://api-inference.huggingface.co/models/stable-diffusion-v1-5/stable-diffusion-v1-5",
+    "gemini_model": None,
 }
+
+
+def initialize_api_keys():
+    """
+    Fetch API keys from the database and initialize Gemini and Hugging Face APIs.
+    Returns True if successful, False otherwise.
+    """
+    try:
+        # Find a user with API keys (e.g., the first user who completed setup)
+        user = db.users.find_one({"setup_completed": True})
+        if user and user.get("hf_api_key") and user.get("gemini_api_key"):
+            # Store the keys in app_config
+            app_config["huggingface_key"] = user["hf_api_key"]
+            app_config["gemini_key"] = user["gemini_api_key"]
+
+            # Initialize Gemini API
+            genai.configure(api_key=app_config["gemini_key"])
+            model = genai.GenerativeModel("gemini-1.5-flash")
+            app_config["gemini_model"] = model
+
+            # Initialize Hugging Face headers
+            app_config["hf_headers"] = {
+                "Authorization": f"Bearer {app_config['huggingface_key']}"
+            }
+
+            print("API keys successfully initialized from database")
+            return True
+        else:
+            print("No user with API keys found for initialization")
+            return False
+    except Exception as e:
+        print(f"Failed to initialize API keys: {e}")
+        return False
+
+
+def ensure_api_keys_initialized():
+    """
+    Ensure that API keys are initialized before proceeding.
+    If not initialized, fetch them from the database.
+    """
+    if app_config["gemini_model"] is None or app_config["hf_headers"] is None:
+        print("API keys not initialized. Attempting to fetch from database...")
+        success = initialize_api_keys()
+        if not success:
+            raise Exception("Failed to initialize API keys from database")
+
+
+# Initialize API keys at startup
+with app.app_context():
+    initialize_api_keys()
 
 
 def get_platform_specific_prompt(platform, topic, length=200):
@@ -152,6 +203,8 @@ Twitter-Specific Elements:
 def get_platform_specific_image_prompt(platform, topic):
     """Modified to use Gemini for dynamic prompt generation"""
     try:
+        ensure_api_keys_initialized()  # Ensure API keys are initialized
+
         prompt_generation_text = f"""
         Create a detailed prompt for generating an image that perfectly complements a {platform} post about {topic}.
         
@@ -169,12 +222,16 @@ def get_platform_specific_image_prompt(platform, topic):
         Return only the image generation prompt, without any explanations or additional text.
         """
 
-        # Use the global Gemini model instance
-        if app_config.get("gemini_model"):
-            response = app_config["gemini_model"].generate_content(
+        model = app_config["gemini_model"]
+        try:
+            response = model.generate_content(
                 prompt_generation_text,
                 generation_config={"temperature": 0.7, "top_p": 0.8, "top_k": 40},
             )
+
+            if not response or not response.text:
+                raise Exception("Failed to generate image prompt")
+
             generated_prompt = response.text.strip()
 
             # Add platform-specific requirements
@@ -183,12 +240,15 @@ def get_platform_specific_image_prompt(platform, topic):
             else:  # twitter
                 return f"{generated_prompt} Style: Bold, attention-grabbing, optimized for mobile viewing on Twitter."
 
-    except Exception as e:
-        print(f"Error generating image prompt: {str(e)}")
+        except Exception as e:
+            print(f"Error generating prompt with Gemini: {str(e)}")
+            raise e
 
-    # Fallback to original static prompts if Gemini generation fails
-    prompts = {
-        "linkedin": f"""Create a image about {topic} for linkedin:
+    except Exception as e:
+        print(f"Error in image prompt generation: {str(e)}")
+        # Fallback to original static prompts if Gemini generation fails
+        prompts = {
+            "linkedin": f"""Create a image about {topic} for linkedin:
 - Style: Clean, corporate, modern
 - Headline: 6-8 words, short and impactful
 - Font: Bold, modern, high contrast
@@ -196,15 +256,15 @@ def get_platform_specific_image_prompt(platform, topic):
 - Contrast: High-contrast for readability (mobile & desktop)
 - Layout: Clear, organized, headline-focused
 - Goal: Professional, attention-grabbing, clutter-free, engaging""",
-        "twitter": f"""Create a visually stunning Twitter image about {topic}.
+            "twitter": f"""Create a visually stunning Twitter image about {topic}.
 Requirements:
 - Bold, eye-catching design that stops the scroll
 - High-contrast color palette for maximum visibility
 - One impactful, short phrase (5 words max)
 - Clean, minimalist layout optimized for mobile
 - Strong, memorable visuals that leave a lasting impression""",
-    }
-    return prompts.get(platform)
+        }
+        return prompts.get(platform)
 
 
 @app.route("/")
@@ -265,8 +325,8 @@ def register():
                 }
             ),
             201,
+            print("User registered successfully!" + new_user["name"]),
         )
-
     except Exception as e:
         print("Registration error:", str(e))
         return jsonify({"error": "Registration failed: " + str(e)}), 500
@@ -301,13 +361,13 @@ def login():
                 }
             ),
             200,
+            print("User logged in successfully!" + user["name"]),
         )
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
-# Then modify your initialize_apis function
 @app.route("/initialize", methods=["POST"])
 @jwt_required()
 def initialize_apis():
@@ -316,45 +376,72 @@ def initialize_apis():
         hf_api_key = data.get("hf_api_key")
         gemini_api_key = data.get("gemini_api_key")
 
+        # Log the API keys for debugging (be careful not to expose in production)
+        print(
+            f"Received API keys - HuggingFace: {hf_api_key}, Gemini: {gemini_api_key}"
+        )
+
+        # Validate API keys
         if not hf_api_key or not gemini_api_key:
             return jsonify({"error": "Both API keys are required"}), 400
 
-        # Initialize Hugging Face headers
-        app_config["hf_headers"] = {"Authorization": f"Bearer {hf_api_key}"}
-        app_config["hf_image_url"] = (
-            "https://api-inference.huggingface.co/models/strangerzonehf/Flux-Midjourney-Mix2-LoRA"
-        )
-
-        # Initialize Gemini model
-        import google.generativeai as genai
-
-        genai.configure(api_key=gemini_api_key)
-        app_config["gemini_model"] = genai.GenerativeModel("gemini-1.5-flash")
-
-        # Test both APIs to ensure they work
+        # Initialize Gemini API with robust error handling
         try:
-            # Test Gemini
-            response = app_config["gemini_model"].generate_content("Test message")
-            if not response:
-                raise Exception("Failed to initialize Gemini API")
+            # Configure Gemini API
+            genai.configure(api_key=gemini_api_key)
 
-            # Test Hugging Face
-            test_response = requests.post(
-                app_config["hf_image_url"],
-                headers=app_config["hf_headers"],
-                json={"inputs": "test"},
+            # Create model with explicit error handling
+            try:
+                model = genai.GenerativeModel("gemini-1.5-flash")
+
+                # Verify model works with a test generation
+                test_response = model.generate_content(
+                    "Hello, can you confirm initialization?"
+                )
+                print("Gemini API test response:", test_response.text)
+
+                # Store the actual model instance
+                app_config["gemini_model"] = model
+                app_config["gemini_key"] = gemini_api_key
+                app_config["huggingface_key"] = hf_api_key
+                app_config["hf_headers"] = {"Authorization": f"Bearer {hf_api_key}"}
+                print("Gemini API successfully initialized and tested!")
+
+            except Exception as model_error:
+                print(f"Error creating or testing Gemini model: {model_error}")
+                return (
+                    jsonify(
+                        {"error": f"Gemini model creation failed: {str(model_error)}"}
+                    ),
+                    500,
+                )
+
+        except Exception as api_error:
+            print(f"Gemini API configuration error: {api_error}")
+            return (
+                jsonify(
+                    {"error": f"Gemini API configuration failed: {str(api_error)}"}
+                ),
+                500,
             )
-            if test_response.status_code not in [
-                200,
-                503,
-            ]:  # 503 is acceptable as it means model is loading
-                raise Exception("Failed to initialize Hugging Face API")
 
-        except Exception as e:
-            return jsonify({"error": f"API test failed: {str(e)}"}), 500
+        # Save API keys to the user's database record
+        user_id = get_jwt_identity()
+        db.users.update_one(
+            {"_id": ObjectId(user_id)},
+            {
+                "$set": {
+                    "hf_api_key": hf_api_key,
+                    "gemini_api_key": gemini_api_key,
+                    "setup_completed": True,
+                }
+            },
+        )
+        print("API keys saved to user record successfully!")
         return jsonify({"message": "APIs initialized successfully"}), 200
 
     except Exception as e:
+        print(f"Initialization failed: {e}")
         return jsonify({"error": f"Initialization failed: {str(e)}"}), 500
 
 
@@ -410,15 +497,11 @@ def humanize_content(text, platform):
 @app.route("/generate_post", methods=["POST"])
 @jwt_required()
 def generate_post():
-    if not app_config.get("gemini_model"):
-        return (
-            jsonify(
-                {"error": "Gemini API not initialized. Please initialize APIs first"}
-            ),
-            400,
-        )
-
     try:
+        print("Generating post... start")
+        ensure_api_keys_initialized()
+        print("API keys initialized:", app_config.get("hf_headers") is not None)
+
         user_id = get_jwt_identity()
         data = request.json
         topic = data.get("topic")
@@ -431,63 +514,53 @@ def generate_post():
         if not topic or not platform:
             return jsonify({"error": "Topic and platform are required"}), 400
 
-        # Generate post content
+        # Generate text
         text_prompt = get_platform_specific_prompt(platform, topic, post_length)
-        generation_config = {
-            "temperature": temperature,
-            "top_p": 0.95,
-            "top_k": 50,
-        }
+        response = app_config["gemini_model"].generate_content(
+            text_prompt,
+            generation_config={"temperature": temperature, "top_p": 0.95, "top_k": 50},
+        )
+        best_content = humanize_content(
+            response.text.strip().replace("**", "").replace("#", " #"), platform
+        )
 
-        # Generate content
-        attempts = 3
-        best_content = None
-        for _ in range(attempts):
-            response = app_config["gemini_model"].generate_content(
-                text_prompt, generation_config=generation_config
-            )
-            content = response.text.strip()
-            content = content.replace("**", "").replace("#", " #")
-            humanized_content = humanize_content(content, platform)
-            best_content = humanized_content
-
-        if platform == "twitter" and len(best_content) > 280:
-            best_content = best_content[:277] + "..."
-
-        # Initialize empty images array
+        # Generate images
         images = []
-
-        # Only generate images if includeImages is True and HF API is initialized
+        image_error = None
         if include_images and app_config.get("hf_headers"):
-            variations = [
-                "",
-                "with a different perspective",
-                "with alternative lighting",
-                "with a unique composition",
-            ]
-
+            print("Attempting image generation...")
             for i in range(image_count):
-                base_prompt = get_platform_specific_image_prompt(platform, topic)
+                try:
+                    print("inside try block...")
+                    base_prompt = get_platform_specific_image_prompt(platform, topic)
+                    image_response = requests.post(
+                        app_config["hf_image_url"],
+                        headers=app_config["hf_headers"],
+                        json={
+                            "inputs": base_prompt,
+                            "height": 512,  # Example value
+                            "width": 512,  # Example value
+                            "num_inference_steps": 10,  # Example value
+                        },
+                    )
+                    if image_response.status_code == 200:
+                        image_data = base64.b64encode(image_response.content).decode(
+                            "utf-8"
+                        )
+                        images.append(f"data:image/jpeg;base64,{image_data}")
+                    else:
+                        print(
+                            f"Image generation failed with status code {image_response.status_code}"
+                        )
+                        image_error = image_response.json().get("error")
 
-                if i > 0:
-                    base_prompt += f" {variations[i % len(variations)]}"
+                except requests.RequestException as req_err:
+                    print(f"Image generation error: {req_err}")
+                    images.append(None)  # Placeholder for failed image
+        else:
+            print("Image generation skipped: No HF headers or includeImages=False")
 
-                image_response = requests.post(
-                    app_config["hf_image_url"],
-                    headers=app_config["hf_headers"],
-                    json={
-                        "inputs": base_prompt,
-                        "negative_prompt": "duplicate, similar images, same composition, text overlay, watermarks, logos",
-                        "seed": random.randint(1, 999999),
-                    },
-                )
-
-                if image_response.status_code != 200:
-                    raise Exception(f"Image generation failed: {image_response.text}")
-
-                image_data = base64.b64encode(image_response.content).decode("utf-8")
-                images.append(f"data:image/jpeg;base64,{image_data}")
-
+        print("Generating post image... end")
         # Calculate engagement score
         engagement_prompt = f"""
         Analyze this social media post for {platform} and provide an engagement score out of 100. Consider the following factors:
@@ -526,18 +599,22 @@ def generate_post():
 
         db.users.update_one({"_id": ObjectId(user_id)}, {"$push": {"posts": post}})
 
+        # Don't manually add CORS headers - let Flask-CORS handle it
         return (
             jsonify(
                 {
                     "text": best_content,
                     "images": images,
                     "engagement_score": engagement_score,
+                    "image_error": image_error if include_images else None,
                 }
             ),
             200,
         )
 
     except Exception as e:
+        print(f"Full error: {str(e)}")
+        # Don't manually add CORS headers here either
         return jsonify({"error": str(e)}), 500
 
 
@@ -545,7 +622,6 @@ def generate_post():
 @jwt_required()
 def get_user_posts():
     try:
-
         user_id = get_jwt_identity()
         user = db.users.find_one({"_id": ObjectId(user_id)})
 
@@ -555,11 +631,11 @@ def get_user_posts():
         posts = user.get("posts", [])
         for post in posts:
             post["_id"] = str(post["_id"])
-
+        print("Posts fetched successfully!")
         return jsonify({"posts": posts}), 200
 
     except Exception as e:
-        print(f"Error in get_user_posts: " + e)
+        print(f"Error in get_user_posts: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 
@@ -580,7 +656,6 @@ def delete_post(post_id):
             return jsonify({"message": "Post deleted successfully"}), 200
         else:
             return jsonify({"error": "Post not found or unauthorized"}), 404
-
     except Exception as e:
         print(f"Delete error: {str(e)}")
         return jsonify({"error": "Server error occurred"}), 500

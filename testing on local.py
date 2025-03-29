@@ -537,7 +537,7 @@ def generate_post():
                         app_config["hf_image_url"],
                         headers=app_config["hf_headers"],
                         json={
-                            "inputs": base_prompt,
+                            "prompt": base_prompt,
                             "height": 512,  # Example value
                             "width": 512,  # Example value
                             "num_inference_steps": 10,  # Example value

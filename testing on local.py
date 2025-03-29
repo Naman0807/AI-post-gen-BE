@@ -63,7 +63,7 @@ app_config = {
     "huggingface_key": None,
     "gemini_key": None,
     "hf_headers": None,
-    "hf_image_url": "https://api-inference.huggingface.co/models/stable-diffusion-v1-5/stable-diffusion-v1-5",
+    "hf_image_url": "https://api-inference.huggingface.co/models/strangerzonehf/Flux-Midjourney-Mix2-LoRA",
     "gemini_model": None,
 }
 
@@ -236,7 +236,7 @@ def get_platform_specific_image_prompt(platform, topic):
 
             # Add platform-specific requirements
             if platform == "linkedin":
-                return f"{generated_prompt} Style: Professional, corporate, modern. Ensure high contrast and clean composition suitable for LinkedIn."
+                return f"{generated_prompt}"
             else:  # twitter
                 return f"{generated_prompt} Style: Bold, attention-grabbing, optimized for mobile viewing on Twitter."
 
@@ -337,29 +337,73 @@ def login():
     try:
         data = request.json
 
+        # Validate required fields
         if not data.get("email") or not data.get("password"):
             return jsonify({"error": "Email and password are required"}), 400
 
+        # Find the user by email
         user = db.users.find_one({"email": data["email"]})
 
+        # Validate credentials
         if not user or not check_password_hash(user["password"], data["password"]):
             return jsonify({"error": "Invalid email or password"}), 401
 
+        # Fetch API keys from the user's database record
+        hf_api_key = user.get("hf_api_key")
+        gemini_api_key = user.get("gemini_api_key")
+
+        # Initialize API keys if they exist
+        if hf_api_key and gemini_api_key:
+            try:
+                # Configure Gemini API
+                genai.configure(api_key=gemini_api_key)
+                model = genai.GenerativeModel("gemini-1.5-flash")
+
+                # Store the initialized model and headers in app_config
+                app_config["gemini_model"] = model
+                app_config["gemini_key"] = gemini_api_key
+                app_config["huggingface_key"] = hf_api_key
+                app_config["hf_headers"] = {"Authorization": f"Bearer {hf_api_key}"}
+
+                print("API keys successfully initialized for logged-in user!")
+            except Exception as api_error:
+                print(f"Failed to initialize API keys during login: {api_error}")
+                # Optionally notify the user about the failure
+                return (
+                    jsonify(
+                        {
+                            "warning": "Failed to initialize API keys",
+                            "details": str(api_error),
+                        }
+                    ),
+                    200,
+                )
+
+        # Generate JWT token
         token = create_access_token(
             identity=str(user["_id"]), expires_delta=timedelta(days=7)
         )
 
+        # Prepare the response
+        response_data = {
+            "token": token,
+            "user": {
+                "id": str(user["_id"]),
+                "name": user["name"],
+                "email": user["email"],
+                "setup_completed": user.get("setup_completed", False),
+            },
+        }
+
+        # Add API keys to the response if they exist
+        if hf_api_key and gemini_api_key:
+            response_data["api_keys"] = {
+                "hf_api_key": hf_api_key,
+                "gemini_api_key": gemini_api_key,
+            }
+
         return (
-            jsonify(
-                {
-                    "token": token,
-                    "user": {
-                        "id": str(user["_id"]),
-                        "name": user["name"],
-                        "email": user["email"],
-                    },
-                }
-            ),
+            jsonify(response_data),
             200,
             print("User logged in successfully!" + user["name"]),
         )
@@ -531,16 +575,17 @@ def generate_post():
             print("Attempting image generation...")
             for i in range(image_count):
                 try:
-                    print("inside try block...")
+                    print(f"Generating image {i + 1}/{image_count}...")
                     base_prompt = get_platform_specific_image_prompt(platform, topic)
                     image_response = requests.post(
                         app_config["hf_image_url"],
                         headers=app_config["hf_headers"],
                         json={
-                            "prompt": base_prompt,
-                            "height": 512,  # Example value
-                            "width": 512,  # Example value
-                            "num_inference_steps": 10,  # Example value
+                            "inputs": base_prompt,
+                            "options": {
+                                "height": 512,
+                                "width": 512,
+                            },
                         },
                     )
                     if image_response.status_code == 200:

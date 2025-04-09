@@ -164,7 +164,7 @@ def get_platform_specific_image_prompt(platform, topic):
         ensure_api_keys_initialized()  # Ensure API keys are initialized
 
         prompt_generation_text = f"""
-        Think before it and then Create a detailed prompt for generating an image that perfectly complements a {platform} post about {topic}.
+        Think before it and then Create a detailed prompt for generating an image that perfectly complements a post about {topic}.
         
         Requirements for the image:
         1. Must be visually engaging
@@ -210,8 +210,7 @@ def get_platform_specific_image_prompt(platform, topic):
 - Font: Bold, modern, high contrast
 - Imagery: High-quality, topic-relevant (no generic stock photos)
 - Contrast: High-contrast for readability (mobile & desktop)
-- Layout: Clear, organized, headline-focused
-- Goal: Professional, attention-grabbing, clutter-free, engaging""",
+- Layout: Clear, organized, headline-focused""",
             "twitter": f"""Create a visually stunning Twitter image about {topic}.
 Requirements:
 - Bold, eye-catching design that stops the scroll

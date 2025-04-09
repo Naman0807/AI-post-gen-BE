@@ -63,7 +63,7 @@ app_config = {
     "huggingface_key": None,
     "gemini_key": None,
     "hf_headers": None,
-    "hf_image_url": "https://api-inference.huggingface.co/models/Efficient-Large-Model/Sana_1600M_1024px",
+    "hf_image_url": "https://api-inference.huggingface.co/models/openfree/claude-monet",
     "gemini_model": None,
 }
 

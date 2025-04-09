@@ -133,6 +133,7 @@ CONTENT APPROACH
 - Share a specific perspective or experience that sparked your thinking
 - Weave in concrete examples that illustrate your points
 - Build connections between observations
+- Make it more realistic and don't exaggerate
 - End with an insight that feels earned, not forced
 - Optional: Incorporate relevant data points or expert perspectives if they fit naturally
 
@@ -140,7 +141,7 @@ WRITING STYLE
 - Write with your authentic voice, not a formula
 - Mix up sentence patterns - some complex, some direct
 - Include natural pauses where you'd take a breath
-- Make the paragraph length very (if there is any)
+- Make the paragraph length vary
 - Use industry terminology naturally, not to show off
 - Let personality shine through while staying professional
 
@@ -157,10 +158,10 @@ Additional Context:
 - Platform context: Adapt tone and style for {platform}'s specific audience and format
 - Topic focus: Demonstrate genuine knowledge/interest in {topic}
 - Authenticity: Write from a place of real experience or understanding
-- Natural expertise: Share insights without trying to prove authority
+- Natural expertise: Share insights without proving authority
 
 **Note**
-- dont want any type of extra text other then the post contnet.
+- Don't want any type of extra text other than the post content.
 """
 
     prompts = {

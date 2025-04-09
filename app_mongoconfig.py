@@ -583,8 +583,8 @@ def generate_post():
                         json={
                             "inputs": base_prompt,
                             "options": {
-                                "height": 512,
-                                "width": 512,
+                                "height": 256,
+                                "width": 256,
                             },
                         },
                     )

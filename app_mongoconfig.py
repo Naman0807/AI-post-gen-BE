@@ -119,49 +119,24 @@ with app.app_context():
 
 
 def get_platform_specific_prompt(platform, topic, length=200):
-    word_range = f"{length-20}-{length+20}"
-    base_prompt = f"""Create an authentic {platform} post about {topic} that feels like it was written in a single, natural moment. The post should:
+    word_range = f"{length-10}-{length+10}"
+    base_prompt = f"""Craft a genuine {platform} post about {topic} that feels spontaneous and personal. Your post should:
 
-VOICE & STRUCTURE
-- Capture a distinct point of view and personality
-- Flow like natural speech while maintaining clear purpose
-- Vary rhythm between longer insights and punchy observations
-- Use organic transitions that emerge from the ideas
-- Hit approximately {word_range} words while staying natural
+Capture your unique voice and perspective on {topic}. Let your personality shine through as you share insights, experiences, or observations. Aim for a natural flow, mixing longer thoughts with punchy remarks. Use transitions that feel organic, not forced.
 
-CONTENT APPROACH
-- Share a specific perspective or experience that sparked your thinking
-- Weave in concrete examples that illustrate your points
-- Build connections between observations
-- Make it more realistic and don't exaggerate
-- End with an insight that feels earned, not forced
-- Optional: Incorporate relevant data points or expert perspectives if they fit naturally
+Your post should be roughly {word_range} words, but don't be too rigid about it. The key is to sound authentic.
 
-WRITING STYLE
-- Write with your authentic voice, not a formula
-- Mix up sentence patterns - some complex, some direct
-- Include natural pauses where you'd take a breath
-- Make the paragraph length vary
-- Use industry terminology naturally, not to show off
-- Let personality shine through while staying professional
+Share a specific angle or experience that got you thinking about {topic}. Use real-world examples to illustrate your points. Draw connections between ideas, but keep it grounded and realistic. Avoid exaggeration or hype.
 
-AVOID
-- Generic openings ("Here's the thing about...", "I've been thinking...")
-- Overused transition phrases ("That being said", "On the other hand") 
-- Forced engagement bait ("Who else agrees?", "Let me know in the comments")
-- Unnecessary buzzwords and jargon
-- Perfectly polished corporate speak
+Write like you speak, not like you're following a template. Vary your sentence structure and paragraph length. If you use industry terms, do it naturally, not to show off. Include pauses where you'd naturally take a breath.
 
-The goal is to create content that reads like it came from a real person sharing genuine thoughts, not following a template. Each post should have its own unique personality and flow while delivering valuable insights about {topic}.
+Steer clear of cliché openings, overused phrases, or forced attempts at engagement. Skip unnecessary jargon or buzzwords. Your post shouldn't sound like polished corporate speak.
 
-Additional Context:
-- Platform context: Adapt tone and style for {platform}'s specific audience and format
-- Topic focus: Demonstrate genuine knowledge/interest in {topic}
-- Authenticity: Write from a place of real experience or understanding
-- Natural expertise: Share insights without proving authority
+Remember, you're aiming for content that feels like it came from a real person sharing genuine thoughts. Let your post have its own personality while offering valuable insights on {topic}.
 
-**Note**
-- Don't want any type of extra text other than the post content.
+Tailor your tone and style to {platform}'s audience. Show real knowledge about {topic} without trying to prove you're an expert. Write from a place of authentic experience or understanding.
+
+Important: Only include the post content itself, without any extra text or formatting instructions.
 """
 
     prompts = {

@@ -63,7 +63,7 @@ app_config = {
     "huggingface_key": None,
     "gemini_key": None,
     "hf_headers": None,
-    "hf_image_url": "https://api-inference.huggingface.co/models/stable-diffusion-v1-5/stable-diffusion-v1-5",
+    "hf_image_url": "https://api-inference.huggingface.co/models/strangerzonehf/Flux-Midjourney-Mix2-LoRA",
     "gemini_model": None,
 }
 

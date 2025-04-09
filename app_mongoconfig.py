@@ -164,20 +164,18 @@ def get_platform_specific_image_prompt(platform, topic):
         ensure_api_keys_initialized()  # Ensure API keys are initialized
 
         prompt_generation_text = f"""
-        Think deeply before creating: Generate a visually captivating image that complements a {platform} post about {topic}.
-
-The image must:
-Instantly grab attention with compelling aesthetics
-Creatively express the core message of the topic
-Feel tailored to the platform's style and audience
-
-Include the following specifics:
-- Art Style: (e.g., modern minimalism, surrealism, digital painting, 3D render, hand-drawn illustration)
-- Color Palette: (e.g., soft pastels, bold neons, monochrome, earthy tones)
-- Composition: (e.g., centered subject with dynamic background, rule-of-thirds layout, top-down perspective, asymmetrical balance)
-- Key Visual Elements (must include): (e.g., symbolic objects, expressive characters, background setting, relevant icons or textures)
-
-Ensure the image evokes emotion, maintains clarity across devices, and feels unique while staying on-brand for the platform.
+        Think before it and then Create a detailed prompt for generating an image that perfectly complements a {platform} post about {topic}.
+        
+        Requirements for the image:
+        1. Must be visually engaging
+        2. Should capture the essence of the topic while being creative
+        3. Include specific details about:
+           - Style and artistic direction
+           - Color palette
+           - Composition elements
+           - Key visual elements to include is must
+        
+        Return only the image generation prompt, without any explanations or additional text.
         """
 
         model = app_config["gemini_model"]

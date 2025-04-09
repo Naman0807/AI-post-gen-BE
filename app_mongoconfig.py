@@ -161,18 +161,18 @@ Additional Context:
 
 **Note**
 - dont want any type of extra text other then the post contnet.
+here is the example input:
+<example>
+gaming in cloud - AWS or Digital Ocean : Which is better?
+</example>
 
 here is the example output:
 <example>
-Okay, so I've been diving deep into Recurrent Neural Networks lately, and honestly, it's been a wild ride! I remember the first time I tried to wrap my head around LSTMs – pure brain-melt... It felt like trying to understand quantum physics while simultaneously juggling flaming torches... 
+Been wrestling with the best cloud platform for my indie game's backend – AWS vs. DigitalOcean. For a small team like ours, DigitalOcean's simplicity is a huge win. Their droplet setup is incredibly intuitive; I had our server running and basic game logic deployed in, like, an hour. AWS, on the other hand, felt… overwhelming. The sheer number of services is fantastic for massive projects, but it's a bit much when you're just trying to get a multiplayer server up and running.
 
-But, seriously, the power of RNNs is incredible... I was working on a project predicting customer churn, and using an RNN made a HUGE difference... The accuracy jumped, like, significantly! It was so satisfying to see the model actually *learning* patterns over time, not just spitting out random guesses.
+Cost-wise, DigitalOcean's pricing model is easier to understand and predict, which is crucial on a tight budget. AWS's flexible pricing can be a double-edged sword; while you can optimize for cost, it takes more time and expertise to do so effectively. Right now, that time is better spent on game development! 
 
-And the best part? The feeling of finally "getting it." That moment when the complex equations suddenly clicked, and I could actually visualize how the network was processing sequential data? Pure magic... It's addictive, I'll admit it.
-
-Anyway, I'm still learning, of course... There are always new challenges, new architectures to explore... It's a constant learning curve, which, let's be honest, can be frustrating sometimes... But that's part of the fun, right?
-
-So, what's your favorite application of RNNs? I'd love to hear what you're working on!
+Ultimately, the "better" choice depends heavily on your project's scale and resources. For smaller indie games, DigitalOcean's ease of use and predictable costs are hard to beat. What are your experiences with cloud platforms for game development? #cloudgaming #gamedev #indiedev #AWSvsDO
 </example>
 """
 
@@ -189,12 +189,7 @@ LinkedIn-Specific Elements:
 """,
         "twitter": f"""{base_prompt}
 Twitter-Specific Elements:
-- Crisp, concise messaging
-- Natural voice with personality
-- 2-3 relevant hashtags that flow naturally
-- Conversation-starting element
-- Memorable closing thought or hook
-- Character-conscious structure
+- summarize it to fit the twitter limits
 """,
     }
     return prompts.get(platform)

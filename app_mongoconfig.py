@@ -63,7 +63,7 @@ app_config = {
     "huggingface_key": None,
     "gemini_key": None,
     "hf_headers": None,
-    "hf_image_url": "https://api-inference.huggingface.co/models/strangerzonehf/Flux-Midjourney-Mix2-LoRA",
+    "hf_image_url": "https://api-inference.huggingface.co/models/CompVis/stable-diffusion-v1-4",
     "gemini_model": None,
 }
 
@@ -583,8 +583,8 @@ def generate_post():
                         json={
                             "inputs": base_prompt,
                             "options": {
-                                "height": 256,
-                                "width": 256,
+                                "height": 128,
+                                "width": 128,
                             },
                         },
                     )

@@ -63,7 +63,7 @@ app_config = {
     "huggingface_key": None,
     "gemini_key": None,
     "hf_headers": None,
-    "hf_image_url": "https://api-inference.huggingface.co/models/openfree/claude-monet",
+    "hf_image_url": "https://api-inference.huggingface.co/models/stable-diffusion-v1-5/stable-diffusion-v1-5",
     "gemini_model": None,
 }
 

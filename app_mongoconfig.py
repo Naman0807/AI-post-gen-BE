@@ -161,19 +161,6 @@ Additional Context:
 
 **Note**
 - dont want any type of extra text other then the post contnet.
-here is the example input:
-<example>
-gaming in cloud - AWS or Digital Ocean : Which is better?
-</example>
-
-here is the example output:
-<example>
-Been wrestling with the best cloud platform for my indie game's backend – AWS vs. DigitalOcean. For a small team like ours, DigitalOcean's simplicity is a huge win. Their droplet setup is incredibly intuitive; I had our server running and basic game logic deployed in, like, an hour. AWS, on the other hand, felt… overwhelming. The sheer number of services is fantastic for massive projects, but it's a bit much when you're just trying to get a multiplayer server up and running.
-
-Cost-wise, DigitalOcean's pricing model is easier to understand and predict, which is crucial on a tight budget. AWS's flexible pricing can be a double-edged sword; while you can optimize for cost, it takes more time and expertise to do so effectively. Right now, that time is better spent on game development! 
-
-Ultimately, the "better" choice depends heavily on your project's scale and resources. For smaller indie games, DigitalOcean's ease of use and predictable costs are hard to beat. What are your experiences with cloud platforms for game development? #cloudgaming #gamedev #indiedev #AWSvsDO
-</example>
 """
 
     prompts = {
@@ -189,7 +176,7 @@ LinkedIn-Specific Elements:
 """,
         "twitter": f"""{base_prompt}
 Twitter-Specific Elements:
-- summarize it to fit the twitter limits
+- Summarize it to fit the twitter limits
 """,
     }
     return prompts.get(platform)

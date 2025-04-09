@@ -83,7 +83,7 @@ def initialize_api_keys():
 
             # Initialize Gemini API
             genai.configure(api_key=app_config["gemini_key"])
-            model = genai.GenerativeModel("gemini-1.5-flash")
+            model = genai.GenerativeModel("gemini-2.0-flash")
             app_config["gemini_model"] = model
 
             # Initialize Hugging Face headers
@@ -357,7 +357,7 @@ def login():
             try:
                 # Configure Gemini API
                 genai.configure(api_key=gemini_api_key)
-                model = genai.GenerativeModel("gemini-1.5-flash")
+                model = genai.GenerativeModel("gemini-2.0-flash")
 
                 # Store the initialized model and headers in app_config
                 app_config["gemini_model"] = model
@@ -436,7 +436,7 @@ def initialize_apis():
 
             # Create model with explicit error handling
             try:
-                model = genai.GenerativeModel("gemini-1.5-flash")
+                model = genai.GenerativeModel("gemini-2.0-flash")
 
                 # Verify model works with a test generation
                 test_response = model.generate_content(

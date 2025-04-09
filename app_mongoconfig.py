@@ -83,7 +83,7 @@ def initialize_api_keys():
 
             # Initialize Gemini API
             genai.configure(api_key=app_config["gemini_key"])
-            model = genai.GenerativeModel("gemini-2.0-flash")
+            model = genai.GenerativeModel("gemini-2.0-flash-thinking-exp-01-21")
             app_config["gemini_model"] = model
 
             # Initialize Hugging Face headers
@@ -120,7 +120,7 @@ with app.app_context():
 
 def get_platform_specific_prompt(platform, topic, length=200):
     word_range = f"{length-10}-{length+10}"
-    base_prompt = f"""Craft a genuine {platform} post about {topic} that feels spontaneous and personal. Your post should:
+    base_prompt = f"""Think before it and then Craft a genuine {platform} post about {topic} that feels spontaneous and personal. Your post should:
 
 Capture your unique voice and perspective on {topic}. Let your personality shine through as you share insights, experiences, or observations. Aim for a natural flow, mixing longer thoughts with punchy remarks. Use transitions that feel organic, not forced.
 
@@ -164,20 +164,20 @@ def get_platform_specific_image_prompt(platform, topic):
         ensure_api_keys_initialized()  # Ensure API keys are initialized
 
         prompt_generation_text = f"""
-        Create a detailed prompt for generating an image that perfectly complements a {platform} post about {topic}.
-        
-        Requirements for the image:
-        1. Must be visually engaging and platform-appropriate for {platform}
-        2. Should capture the essence of the topic while being creative
-        3. Include specific details about:
-           - Style and artistic direction
-           - Mood and atmosphere
-           - Color palette
-           - Composition elements
-           - Key visual elements to include
-        4. Must be safe for work and appropriate for all audiences
-        
-        Return only the image generation prompt, without any explanations or additional text.
+        Think deeply before creating: Generate a visually captivating image that complements a {platform} post about {topic}.
+
+The image must:
+Instantly grab attention with compelling aesthetics
+Creatively express the core message of the topic
+Feel tailored to the platform's style and audience
+
+Include the following specifics:
+- Art Style: (e.g., modern minimalism, surrealism, digital painting, 3D render, hand-drawn illustration)
+- Color Palette: (e.g., soft pastels, bold neons, monochrome, earthy tones)
+- Composition: (e.g., centered subject with dynamic background, rule-of-thirds layout, top-down perspective, asymmetrical balance)
+- Key Visual Elements (must include): (e.g., symbolic objects, expressive characters, background setting, relevant icons or textures)
+
+Ensure the image evokes emotion, maintains clarity across devices, and feels unique while staying on-brand for the platform.
         """
 
         model = app_config["gemini_model"]
@@ -315,7 +315,7 @@ def login():
             try:
                 # Configure Gemini API
                 genai.configure(api_key=gemini_api_key)
-                model = genai.GenerativeModel("gemini-2.0-flash")
+                model = genai.GenerativeModel("gemini-2.0-flash-thinking-exp-01-21")
 
                 # Store the initialized model and headers in app_config
                 app_config["gemini_model"] = model
@@ -394,7 +394,7 @@ def initialize_apis():
 
             # Create model with explicit error handling
             try:
-                model = genai.GenerativeModel("gemini-2.0-flash")
+                model = genai.GenerativeModel("gemini-2.0-flash-thinking-exp-01-21")
 
                 # Verify model works with a test generation
                 test_response = model.generate_content(
